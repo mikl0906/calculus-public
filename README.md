@@ -1,2 +1,2 @@
-# Calculus-Issues
-This is an issue tracker repository for Calculus project
+# Calculus
+This is a public repo for Calculus project
