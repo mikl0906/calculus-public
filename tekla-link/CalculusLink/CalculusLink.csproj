@@ -26,6 +26,11 @@
     <ProjectReference Include="..\CalculusModel\CalculusModel.csproj" />
   </ItemGroup>
 
+  <!-- The window's title-bar icon (MainWindow.xaml) reads the same .ico. -->
+  <ItemGroup>
+    <Resource Include="AppIcon.ico" />
+  </ItemGroup>
+
   <!-- Hub client uses System.Net.Http (framework assembly on net48). -->
   <ItemGroup>
     <Reference Include="System.Net.Http" />

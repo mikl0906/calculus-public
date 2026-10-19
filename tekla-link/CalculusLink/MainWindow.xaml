@@ -234,9 +234,12 @@
                 <StackPanel
                     Margin="8,8,0,0"
                     Orientation="Horizontal">
-                    <ui:SymbolIcon
+                    <Image
+                        Width="16"
+                        Height="16"
                         VerticalAlignment="Top"
-                        Symbol="ArrowSort20" />
+                        RenderOptions.BitmapScalingMode="HighQuality"
+                        Source="pack://application:,,,/AppIcon.ico" />
                     <ui:TextBlock
                         Margin="8,0,0,0"
                         VerticalAlignment="Top"

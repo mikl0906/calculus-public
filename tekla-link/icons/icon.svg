@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24">
+  <!-- Calculus Link: the Calculus beam-section mark with an exchange badge.
+       Source of CalculusLink/AppIcon.ico, Tsep/Icon.png and Tsep/macros modeling/Calculus Link.png. -->
+  <rect width="24" height="24" rx="5" fill="#000000"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+     transform="translate(9.8 9.8) scale(0.7) translate(-12 -11.5)">
+    <path d="M18 21H6C5.44772 21 5 20.5523 5 20V18C5 17.4477 5.44772 17 6 17H8C9.10457 17 10 16.1046 10 15V8C10 6.89543 9.10457 6 8 6H6C5.44772 6 5 5.55228 5 5V3C5 2.44772 5.44772 2 6 2H18C18.5523 2 19 2.44772 19 3V5C19 5.55228 18.5523 6 18 6H16C14.8954 6 14 6.89543 14 8V15C14 16.1046 14.8954 17 16 17H18C18.5523 17 19 17.4477 19 18V20C19 20.5523 18.5523 21 18 21Z"/>
+  </g>
+  <g transform="translate(17.2 17.2)">
+    <circle r="5.3" fill="#d8a630" stroke="#000000" stroke-width="1.2"/>
+    <g fill="none" stroke="#000000" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-2.6 -1.2H2.4M1 -2.6L2.4 -1.2L1 0.2"/>
+      <path d="M2.6 1.4H-2.4M-1 0L-2.4 1.4L-1 2.8"/>
+    </g>
+  </g>
+</svg>

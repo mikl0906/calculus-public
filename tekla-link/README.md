@@ -25,6 +25,7 @@ lines.
 | `CalculusModel/` | The `.calculus` format in C# (structural objects only) and the sync hash. Mirrors the TypeScript schema in Calculus; keep the two aligned. |
 | `CalculusLink/` | The WPF app: Tekla ↔ Calculus mapping, the bridge client, sync plan and preview. |
 | `Tsep/` | The Tekla extension package definition and the macro that starts the app from Tekla. |
+| `icons/` | `icon.svg`, the source of the app icon (`CalculusLink/AppIcon.ico`), the macro icon and the package image (`Tsep/`). |
 
 ## Build
 
