@@ -7,7 +7,7 @@ namespace CalculusLink.Bridge;
 
 /// <summary>
 /// Shows a <see cref="SyncPlan"/> in both models before anything is written
-/// (docs/tekla-link-sync.md): in Calculus through the document's colour-by-rule
+/// (https://docs.calculus.build/reference/tekla-plugin/sync-behavior): in Calculus through the document's colour-by-rule
 /// list (rules named <c>tekla-sync:*</c>, id lists, placed first so they win),
 /// in Tekla through temporary states on the twins. Both models are ghosted
 /// meanwhile so the coloured objects stand out: Calculus switches to the

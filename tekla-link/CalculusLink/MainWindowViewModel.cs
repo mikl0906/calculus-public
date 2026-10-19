@@ -364,7 +364,7 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
         }
     }
 
-    // --- Direct (bridge) transfer: preview, then apply (docs/tekla-link-sync.md) ---
+    // --- Direct (bridge) transfer: preview, then apply (https://docs.calculus.build/reference/tekla-plugin/sync-behavior) ---
 
     [ObservableProperty]
     public partial bool HasPreviewToCalculus { get; set; }

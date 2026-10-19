@@ -45,11 +45,31 @@ that installed version; start Tekla first, then F5.
 
 ## Package
 
-1. Empty `Tsep/extension/`, then copy the Release build output into it.
-2. Check that the `<File>` list in `Tsep/TsepDefinition.xml` matches the
-   folder, and that no `Tekla.*` or `Trimble.*` assembly is in either.
-3. Build the `.tsep` with Tekla's TSEP builder. Packages are published as
-   release assets on this repository, never committed.
+Building the `.tsep` needs Tekla Structures installed: the packager,
+`TeklaExtensionPackage.BatchBuilder.exe`, ships in its `bin` folder.
+
+```powershell
+./Tsep/build-tsep.ps1
+```
+
+The script:
+
+1. builds the solution in Release;
+2. empties `Tsep/extension/` and copies the build output into it;
+3. stops if any `Tekla.*`, `Trimble.*` or `DotNetKit` assembly is in it, or if
+   the files differ from the `<File>` list in `Tsep/TsepDefinition.xml`;
+4. runs the newest installed Tekla's BatchBuilder with that manifest and
+   writes `Tsep/out/CalculusLink_<version>.tsep`.
+
+The package version is the `<Version>` in `CalculusLink/CalculusLink.csproj`
+(major.minor); the `Version` in `TsepDefinition.xml` is overridden. Pass
+`-TeklaBin <a Tekla bin folder>` to use a specific Tekla's packager.
+
+When a dependency is added or removed, update the `<File>` entries in
+`TsepDefinition.xml` (a new entry needs a new GUID as its `Id`); the script
+lists what differs. Tekla's GUI packager, `TeklaExtensionPackage.Builder.exe`
+in the same folder, opens the same manifest. Packages are published as
+release assets on this repository, never committed (`Tsep/out/` is ignored).
 
 ## Licence
 

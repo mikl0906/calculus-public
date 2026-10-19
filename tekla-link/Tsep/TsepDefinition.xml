@@ -44,7 +44,6 @@
     <File Id="8350e12f-b0e8-434e-a5da-054196b8fb74" Source="%Extension%\CalculusLink.exe.config" Target="%ExtensionTarget%"/>
     <File Id="b7dc71aa-aa71-4985-88d9-45cf3293d97d" Source="%Extension%\CalculusLink.pdb" Target="%ExtensionTarget%"/>
     <File Id="84f1b4f5-f0a1-4b02-a438-ef67474a6d74" Source="%Extension%\CommunityToolkit.Mvvm.dll" Target="%ExtensionTarget%"/>
-    <File Id="4a929228-4acc-4fde-a698-d8fa7cc36d6e" Source="%Extension%\LibTessDotNet.dll" Target="%ExtensionTarget%"/>
     <File Id="6237d6e5-babc-44ec-b942-edce5482fc7a" Source="%Extension%\Microsoft.Bcl.AsyncInterfaces.dll" Target="%ExtensionTarget%"/>
     <File Id="c07a561c-41a8-41d1-975d-df256accca97" Source="%Extension%\Microsoft.Toolkit.Uwp.Notifications.dll" Target="%ExtensionTarget%"/>
     <File Id="5a25be3c-e979-4c0f-ae1e-cb422846e7fb" Source="%Extension%\Serilog.dll" Target="%ExtensionTarget%"/>

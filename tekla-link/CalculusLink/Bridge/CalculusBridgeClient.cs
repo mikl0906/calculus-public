@@ -43,7 +43,7 @@ public class BridgeException(string message) : Exception(message);
 /// equivalent JSON-RPC surface for MCP/LLM hosts and isn't used from here.
 /// <c>GET /status</c> drives the connection check. The bridge is loopback-only;
 /// a token is needed only when the app's "Require a token from agents" is on
-/// (default port 7421, see docs/agent-access.md).
+/// (default port 7421; GET http://127.0.0.1:7421/ describes it).
 /// </summary>
 public class CalculusBridgeClient(int port = 7421, string? token = null)
 {

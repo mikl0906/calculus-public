@@ -17,7 +17,7 @@ namespace CalculusLink.Bridge;
 /// <c>CalculusTeklaMapper</c>); twins are matched by the cross-reference ids
 /// (<c>userdata.tekla_id</c> on the Calculus side, <c>CALCULUS_ID</c> UDA on the
 /// Tekla side) and compared through <see cref="SyncHash"/>, whose baseline on
-/// both twins tells an update from a conflict (docs/tekla-link-sync.md).
+/// both twins tells an update from a conflict (https://docs.calculus.build/reference/tekla-plugin/sync-behavior).
 ///
 /// Caller is responsible for the work-plane (coordinate-system) setup/restore and
 /// for running this off the UI thread, mirroring the file import/export commands.

@@ -4,7 +4,7 @@ using TSM = Tekla.Structures.Model;
 
 namespace CalculusLink.Bridge;
 
-/// <summary>What a transfer would do with one object (docs/tekla-link-sync.md).</summary>
+/// <summary>What a transfer would do with one object (https://docs.calculus.build/reference/tekla-plugin/sync-behavior).</summary>
 public enum SyncState
 {
     /// <summary>No twin on the target: will be added.</summary>

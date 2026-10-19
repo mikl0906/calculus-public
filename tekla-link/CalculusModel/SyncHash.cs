@@ -16,7 +16,7 @@ namespace CalculusModel;
 /// Twins keep the hash they were last transferred with as a baseline —
 /// <c>userdata.tekla_sync</c> on the Calculus object, the <c>CALCULUS_SYNC</c>
 /// UDA on the Tekla object — which is what tells an update from a conflict
-/// (docs/tekla-link-sync.md).
+/// (https://docs.calculus.build/reference/tekla-plugin/sync-behavior).
 /// </summary>
 public static class SyncHash
 {
