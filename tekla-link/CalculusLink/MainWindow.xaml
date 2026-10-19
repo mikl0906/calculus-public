@@ -9,7 +9,7 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     Title="Calculus Link"
     Width="560"
-    Height="740"
+    Height="800"
     MinWidth="480"
     MinHeight="420"
     d:DataContext="{Binding}"
@@ -117,46 +117,10 @@
                 <Setter Property="Appearance" Value="Secondary" />
             </Style>
 
-            <!--  Preview: what Send would do, one row per object, the dot in the model's colour  -->
-            <DataTemplate
-                x:Key="PreviewRow"
-                DataType="{x:Type bridge:SyncItem}">
-                <Grid Margin="0,1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Ellipse
-                        Grid.Column="0"
-                        Width="8"
-                        Height="8"
-                        Margin="0,0,10,0"
-                        VerticalAlignment="Center"
-                        Fill="{Binding State, Converter={StaticResource StateBrush}}" />
-                    <ui:TextBlock
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                        Text="{Binding State}" />
-                    <ui:TextBlock
-                        Grid.Column="2"
-                        VerticalAlignment="Center"
-                        Appearance="Secondary"
-                        Text="{Binding Type}" />
-                    <ui:TextBlock
-                        Grid.Column="3"
-                        VerticalAlignment="Center"
-                        Appearance="Tertiary"
-                        FontFamily="Cascadia Mono, Consolas"
-                        FontSize="11"
-                        Text="{Binding CalculusId}"
-                        TextTrimming="CharacterEllipsis"
-                        ToolTip="{Binding CalculusId}" />
-                </Grid>
-            </DataTemplate>
+            <local:InverseBoolToVisibilityConverter
+                x:Key="InverseBoolToVisibility" />
 
+            <!--  Preview: what Apply would write, one row per object, the dot in the models' colour  -->
             <Style
                 x:Key="PreviewPanel"
                 TargetType="Border">
@@ -168,49 +132,146 @@
                 <Setter Property="BorderThickness" Value="1" />
             </Style>
 
-            <Style
-                x:Key="PreviewList"
-                TargetType="ListBox">
-                <Setter Property="MaxHeight" Value="200" />
-                <Setter Property="Margin" Value="-4,8,-4,0" />
-                <Setter Property="Background" Value="Transparent" />
-                <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="ItemTemplate" Value="{StaticResource PreviewRow}" />
-                <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
-                <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
-                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-                <Setter Property="ItemContainerStyle">
-                    <Setter.Value>
-                        <Style TargetType="ListBoxItem">
-                            <!--  The row template replaces WPF-UI's, which set the theme's text colour  -->
-                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <Setter Property="Padding" Value="6,4" />
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border
-                                            x:Name="Row"
-                                            Padding="{TemplateBinding Padding}"
-                                            Background="Transparent"
-                                            CornerRadius="4">
-                                            <ContentPresenter />
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                                            </Trigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Setter.Value>
-                </Setter>
-            </Style>
+            <DataTemplate
+                x:Key="PreviewTable"
+                DataType="{x:Type local:TransferDirectionViewModel}">
+                <Border Style="{StaticResource PreviewPanel}">
+                    <StackPanel>
+                        <ui:TextBlock
+                            Text="{Binding PreviewText}"
+                            TextWrapping="Wrap" />
+
+                        <!--  Act on the selected rows; Space does the same in the table  -->
+                        <StackPanel
+                            Margin="0,8,0,0"
+                            Orientation="Horizontal">
+                            <ui:Button
+                                Padding="8,4"
+                                Command="{Binding ViewModel.IncludeSelectedCommand, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                                CommandParameter="{Binding}"
+                                Content="Include"
+                                Icon="{ui:SymbolIcon Checkmark16}"
+                                IsEnabled="{Binding HasSelectedRows}"
+                                ToolTip="Transfer the selected rows" />
+                            <ui:Button
+                                Margin="6,0,0,0"
+                                Padding="8,4"
+                                Command="{Binding ViewModel.ExcludeSelectedCommand, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                                CommandParameter="{Binding}"
+                                Content="Leave out"
+                                Icon="{ui:SymbolIcon Dismiss16}"
+                                IsEnabled="{Binding HasSelectedRows}"
+                                ToolTip="Leave the selected rows out of this transfer. A new part takes its new bolts and welds with it." />
+                            <ui:TextBlock
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Appearance="Tertiary"
+                                Text="Selecting rows selects the objects in both models" />
+                        </StackPanel>
+
+                        <ui:DataGrid
+                            Margin="0,8,0,0"
+                            MaxHeight="280"
+                            AutoGenerateColumns="False"
+                            Background="Transparent"
+                            CanUserAddRows="False"
+                            CanUserDeleteRows="False"
+                            CanUserReorderColumns="False"
+                            CanUserResizeRows="False"
+                            CanUserSortColumns="True"
+                            EnableRowVirtualization="True"
+                            GridLinesVisibility="None"
+                            HeadersVisibility="Column"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding Rows}"
+                            PreviewKeyDown="PreviewGrid_PreviewKeyDown"
+                            SelectionChanged="PreviewGrid_SelectionChanged"
+                            SelectionMode="Extended"
+                            SelectionUnit="FullRow"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            VirtualizingPanel.VirtualizationMode="Recycling">
+                            <ui:DataGrid.Columns>
+                                <DataGridTemplateColumn
+                                    Width="44"
+                                    CanUserResize="False"
+                                    SortMemberPath="Include">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <!--  WPF-UI's check box keeps a 32 px minimum height and content padding: both clip in a grid cell  -->
+                                            <CheckBox
+                                                MinWidth="0"
+                                                MinHeight="0"
+                                                Margin="0"
+                                                Padding="0"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                IsChecked="{Binding Include, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                ToolTip="Include in the transfer" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn
+                                    Width="96"
+                                    Header="State"
+                                    SortMemberPath="State">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel
+                                                VerticalAlignment="Center"
+                                                Orientation="Horizontal">
+                                                <Ellipse
+                                                    Width="8"
+                                                    Height="8"
+                                                    Margin="0,0,8,0"
+                                                    VerticalAlignment="Center"
+                                                    Fill="{Binding State, Converter={StaticResource StateBrush}}" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    Text="{Binding State}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn
+                                    Width="80"
+                                    Binding="{Binding Type}"
+                                    Header="Type" />
+                                <DataGridTextColumn
+                                    Width="*"
+                                    MinWidth="60"
+                                    Binding="{Binding Name}"
+                                    Header="Name" />
+                                <DataGridTextColumn
+                                    Width="*"
+                                    MinWidth="60"
+                                    Binding="{Binding Profile}"
+                                    Header="Profile" />
+                            </ui:DataGrid.Columns>
+                        </ui:DataGrid>
+
+                        <!--  Decide: nothing is written until Apply  -->
+                        <StackPanel
+                            Margin="0,10,0,0"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal">
+                            <ui:Button
+                                Command="{Binding ViewModel.CancelPreviewCommand, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                                CommandParameter="{Binding}"
+                                Content="Cancel"
+                                ToolTip="Close the preview; nothing is written" />
+                            <ui:Button
+                                MinWidth="120"
+                                Margin="8,0,0,0"
+                                Appearance="Primary"
+                                Command="{Binding ViewModel.ApplyCommand, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                                CommandParameter="{Binding}"
+                                Content="{Binding ApplyText}"
+                                Icon="{ui:SymbolIcon Checkmark20}"
+                                ToolTip="Write the checked rows. If either model changed since the preview, nothing is written and the preview is refreshed." />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
         </ResourceDictionary>
 
     </ui:FluentWindow.Resources>
@@ -345,12 +406,26 @@
                                 <ui:TextBlock
                                     Margin="0,2,0,0"
                                     Appearance="Secondary"
-                                    Text="Save the objects selected in Tekla as a .calculus file."
+                                    Text="Save Tekla objects as a .calculus file."
                                     TextWrapping="Wrap" />
                             </StackPanel>
                         </DockPanel>
                         <StackPanel
                             Margin="42,10,0,0"
+                            Orientation="Horizontal">
+                            <ui:TextBlock
+                                Style="{StaticResource FieldLabel}"
+                                Text="Objects"
+                                ToolTip="Selected: the objects selected in Tekla — a component stands for the parts, bolts and welds it made. Whole model: every transferable object in the Tekla model." />
+                            <ComboBox
+                                Width="140"
+                                DisplayMemberPath="Label"
+                                ItemsSource="{Binding ViewModel.ScopeOptions}"
+                                SelectedValue="{Binding ViewModel.ExportScope}"
+                                SelectedValuePath="Value" />
+                        </StackPanel>
+                        <StackPanel
+                            Margin="42,6,0,0"
                             Orientation="Horizontal">
                             <ui:TextBlock
                                 Style="{StaticResource FieldLabel}"
@@ -362,7 +437,7 @@
                                 SelectedItem="{Binding ViewModel.ExportCoordinateSystem}" />
                         </StackPanel>
                         <Border Style="{StaticResource CardFooter}">
-                            <DockPanel>
+                            <DockPanel LastChildFill="False">
                                 <ui:Button
                                     MinWidth="120"
                                     Appearance="Primary"
@@ -407,11 +482,6 @@
                                         </ContentControl.Style>
                                     </ContentControl>
                                 </ui:Button>
-                                <ui:TextBlock
-                                    VerticalAlignment="Center"
-                                    Appearance="Tertiary"
-                                    Text="Select objects in Tekla first"
-                                    TextWrapping="Wrap" />
                             </DockPanel>
                         </Border>
                     </StackPanel>
@@ -623,7 +693,7 @@
                     </StackPanel>
                 </ui:Card>
 
-                <!--  Tekla -> Calculus  -->
+                <!--  Tekla → Calculus  -->
                 <ui:Card
                     Margin="0,8,0,0"
                     Padding="12"
@@ -645,7 +715,7 @@
                                 <ui:TextBlock
                                     Margin="0,2,0,0"
                                     Appearance="Secondary"
-                                    Text="Sends the objects selected in Tekla. Changed twins are updated, unchanged ones skipped."
+                                    Text="Preview what sending the Tekla objects would do, then apply it. Changed twins are updated, unchanged ones skipped."
                                     TextWrapping="Wrap" />
                             </StackPanel>
                         </DockPanel>
@@ -653,70 +723,62 @@
                             <StackPanel Orientation="Horizontal">
                                 <ui:TextBlock
                                     Style="{StaticResource FieldLabel}"
+                                    Text="Objects"
+                                    ToolTip="Selected: the objects selected in Tekla — a component stands for the parts, bolts and welds it made. Whole model: every transferable object in the Tekla model." />
+                                <ComboBox
+                                    Width="140"
+                                    DisplayMemberPath="Label"
+                                    ItemsSource="{Binding ViewModel.ScopeOptions}"
+                                    SelectedValue="{Binding ViewModel.ToCalculus.Scope}"
+                                    SelectedValuePath="Value" />
+                            </StackPanel>
+                            <StackPanel
+                                Margin="0,6,0,0"
+                                Orientation="Horizontal">
+                                <ui:TextBlock
+                                    Style="{StaticResource FieldLabel}"
                                     Text="Location by"
                                     ToolTip="Coordinate system in which object positions are defined in Calculus" />
                                 <ComboBox
                                     Width="140"
                                     ItemsSource="{Binding ViewModel.CoordinateSystemOptions}"
-                                    SelectedItem="{Binding ViewModel.ExportCoordinateSystem}" />
+                                    SelectedItem="{Binding ViewModel.ToCalculus.CoordinateSystem}" />
                             </StackPanel>
                             <CheckBox
                                 Margin="-11,6,0,0"
                                 Content="Overwrite conflicts"
-                                IsChecked="{Binding ViewModel.OverwriteConflictsInCalculus, Mode=TwoWay}"
-                                ToolTip="A twin that also changed in Calculus since the last transfer is skipped unless this is on. When on, the Calculus changes are lost." />
+                                IsChecked="{Binding ViewModel.ToCalculus.OverwriteConflicts, Mode=TwoWay}"
+                                ToolTip="Check conflicting rows by default: a twin that also changed in Calculus since the last transfer. Applying them loses the Calculus changes." />
                             <CheckBox
                                 Margin="-11,0,0,0"
                                 Content="Remove objects deleted in Tekla"
-                                IsChecked="{Binding ViewModel.RemoveGoneInCalculus, Mode=TwoWay}"
-                                ToolTip="Remove Calculus objects whose Tekla twin no longer exists." />
+                                IsChecked="{Binding ViewModel.ToCalculus.RemoveGone, Mode=TwoWay}"
+                                ToolTip="Check gone rows by default: Calculus objects whose Tekla twin no longer exists." />
                         </StackPanel>
 
-                        <Border
-                            Style="{StaticResource PreviewPanel}"
-                            Visibility="{Binding ViewModel.HasPreviewToCalculus, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel>
-                                <DockPanel>
-                                    <ui:Button
-                                        Padding="6"
-                                        VerticalAlignment="Top"
-                                        Appearance="Transparent"
-                                        Command="{Binding ViewModel.ClearPreviewCommand}"
-                                        DockPanel.Dock="Right"
-                                        Icon="{ui:SymbolIcon Dismiss16}"
-                                        ToolTip="Clear preview" />
-                                    <ui:TextBlock
-                                        Margin="0,4,8,0"
-                                        Text="{Binding ViewModel.PreviewToCalculusText}"
-                                        TextWrapping="Wrap" />
-                                </DockPanel>
-                                <ListBox
-                                    ItemsSource="{Binding ViewModel.PreviewToCalculusItems}"
-                                    Style="{StaticResource PreviewList}" />
-                            </StackPanel>
-                        </Border>
+                        <ContentControl
+                            Content="{Binding ViewModel.ToCalculus}"
+                            ContentTemplate="{StaticResource PreviewTable}"
+                            Focusable="False"
+                            Visibility="{Binding ViewModel.ToCalculus.HasPreview, Converter={StaticResource BoolToVisibility}}" />
 
-                        <Border Style="{StaticResource CardFooter}">
-                            <StackPanel
+                        <Border
+                            Style="{StaticResource CardFooter}"
+                            Visibility="{Binding ViewModel.ToCalculus.HasPreview, Converter={StaticResource InverseBoolToVisibility}}">
+                            <ui:Button
+                                MinWidth="120"
                                 HorizontalAlignment="Right"
-                                Orientation="Horizontal">
-                                <ui:Button
-                                    Command="{Binding ViewModel.PreviewToCalculusCommand}"
-                                    Content="Preview"
-                                    Icon="{ui:SymbolIcon Eye20}"
-                                    ToolTip="Show what Send would do, without changing anything" />
-                                <ui:Button
-                                    Margin="8,0,0,0"
-                                    Appearance="Primary"
-                                    Command="{Binding ViewModel.TransferToCalculusCommand}"
-                                    Content="Send to Calculus"
-                                    Icon="{ui:SymbolIcon ArrowUpload20}" />
-                            </StackPanel>
+                                Appearance="Primary"
+                                Command="{Binding ViewModel.PreviewCommand}"
+                                CommandParameter="{Binding ViewModel.ToCalculus}"
+                                Content="Preview…"
+                                Icon="{ui:SymbolIcon Eye20}"
+                                ToolTip="Show what the transfer would do, in both models and as a list. Nothing is written until you apply it." />
                         </Border>
                     </StackPanel>
                 </ui:Card>
 
-                <!--  Calculus -> Tekla  -->
+                <!--  Calculus → Tekla  -->
                 <ui:Card
                     Margin="0,8,0,0"
                     Padding="12"
@@ -738,7 +800,7 @@
                                 <ui:TextBlock
                                     Margin="0,2,0,0"
                                     Appearance="Secondary"
-                                    Text="Sends the objects selected in Calculus. Changed twins are updated, unchanged ones skipped."
+                                    Text="Preview what sending the Calculus objects would do, then apply it. Changed twins are updated, unchanged ones skipped."
                                     TextWrapping="Wrap" />
                             </StackPanel>
                         </DockPanel>
@@ -746,65 +808,57 @@
                             <StackPanel Orientation="Horizontal">
                                 <ui:TextBlock
                                     Style="{StaticResource FieldLabel}"
+                                    Text="Objects"
+                                    ToolTip="Selected: the objects selected in Calculus — a component stands for its child objects. Whole model: every transferable object in the Calculus model." />
+                                <ComboBox
+                                    Width="140"
+                                    DisplayMemberPath="Label"
+                                    ItemsSource="{Binding ViewModel.ScopeOptions}"
+                                    SelectedValue="{Binding ViewModel.ToTekla.Scope}"
+                                    SelectedValuePath="Value" />
+                            </StackPanel>
+                            <StackPanel
+                                Margin="0,6,0,0"
+                                Orientation="Horizontal">
+                                <ui:TextBlock
+                                    Style="{StaticResource FieldLabel}"
                                     Text="Location by"
                                     ToolTip="Coordinate system with respect to which new objects are placed in Tekla" />
                                 <ComboBox
                                     Width="140"
                                     ItemsSource="{Binding ViewModel.CoordinateSystemOptions}"
-                                    SelectedItem="{Binding ViewModel.ImportCoordinateSystem}" />
+                                    SelectedItem="{Binding ViewModel.ToTekla.CoordinateSystem}" />
                             </StackPanel>
                             <CheckBox
                                 Margin="-11,6,0,0"
                                 Content="Overwrite conflicts"
-                                IsChecked="{Binding ViewModel.OverwriteConflictsInTekla, Mode=TwoWay}"
-                                ToolTip="A twin that also changed in Tekla since the last transfer is skipped unless this is on. When on, the Tekla changes are lost." />
+                                IsChecked="{Binding ViewModel.ToTekla.OverwriteConflicts, Mode=TwoWay}"
+                                ToolTip="Check conflicting rows by default: a twin that also changed in Tekla since the last transfer. Applying them loses the Tekla changes." />
                             <CheckBox
                                 Margin="-11,0,0,0"
                                 Content="Remove objects deleted in Calculus"
-                                IsChecked="{Binding ViewModel.RemoveGoneInTekla, Mode=TwoWay}"
-                                ToolTip="Remove Tekla objects in the current Tekla selection whose Calculus twin no longer exists." />
+                                IsChecked="{Binding ViewModel.ToTekla.RemoveGone, Mode=TwoWay}"
+                                ToolTip="Check gone rows by default: Tekla objects whose Calculus twin no longer exists — among the Tekla selection, or the whole Tekla model when the scope is Whole model." />
                         </StackPanel>
 
-                        <Border
-                            Style="{StaticResource PreviewPanel}"
-                            Visibility="{Binding ViewModel.HasPreviewToTekla, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel>
-                                <DockPanel>
-                                    <ui:Button
-                                        Padding="6"
-                                        VerticalAlignment="Top"
-                                        Appearance="Transparent"
-                                        Command="{Binding ViewModel.ClearPreviewCommand}"
-                                        DockPanel.Dock="Right"
-                                        Icon="{ui:SymbolIcon Dismiss16}"
-                                        ToolTip="Clear preview" />
-                                    <ui:TextBlock
-                                        Margin="0,4,8,0"
-                                        Text="{Binding ViewModel.PreviewToTeklaText}"
-                                        TextWrapping="Wrap" />
-                                </DockPanel>
-                                <ListBox
-                                    ItemsSource="{Binding ViewModel.PreviewToTeklaItems}"
-                                    Style="{StaticResource PreviewList}" />
-                            </StackPanel>
-                        </Border>
+                        <ContentControl
+                            Content="{Binding ViewModel.ToTekla}"
+                            ContentTemplate="{StaticResource PreviewTable}"
+                            Focusable="False"
+                            Visibility="{Binding ViewModel.ToTekla.HasPreview, Converter={StaticResource BoolToVisibility}}" />
 
-                        <Border Style="{StaticResource CardFooter}">
-                            <StackPanel
+                        <Border
+                            Style="{StaticResource CardFooter}"
+                            Visibility="{Binding ViewModel.ToTekla.HasPreview, Converter={StaticResource InverseBoolToVisibility}}">
+                            <ui:Button
+                                MinWidth="120"
                                 HorizontalAlignment="Right"
-                                Orientation="Horizontal">
-                                <ui:Button
-                                    Command="{Binding ViewModel.PreviewToTeklaCommand}"
-                                    Content="Preview"
-                                    Icon="{ui:SymbolIcon Eye20}"
-                                    ToolTip="Show what Send would do, without changing anything" />
-                                <ui:Button
-                                    Margin="8,0,0,0"
-                                    Appearance="Primary"
-                                    Command="{Binding ViewModel.TransferToTeklaCommand}"
-                                    Content="Send to Tekla"
-                                    Icon="{ui:SymbolIcon ArrowDownload20}" />
-                            </StackPanel>
+                                Appearance="Primary"
+                                Command="{Binding ViewModel.PreviewCommand}"
+                                CommandParameter="{Binding ViewModel.ToTekla}"
+                                Content="Preview…"
+                                Icon="{ui:SymbolIcon Eye20}"
+                                ToolTip="Show what the transfer would do, in both models and as a list. Nothing is written until you apply it." />
                         </Border>
                     </StackPanel>
                 </ui:Card>

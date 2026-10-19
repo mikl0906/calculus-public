@@ -58,6 +58,17 @@ public static class ModelObjectExtensions
     public static string? GetTeklaId(this ModelObject o) =>
         o.GetUserdata().TryGetValue("tekla_id", out var id) && !string.IsNullOrEmpty(id) ? id : null;
 
+    /// <summary>The ids of the objects this one is attached to (a bolt's parts, a rebar's father).</summary>
+    public static IEnumerable<string> GetReferenceIds(this ModelObject o) => o switch
+    {
+        CutPart c => c.PartIds,
+        CutPlane c => c.PartIds,
+        Bolt b => b.PartIds,
+        Weld w => w.PartIds,
+        Rebar r => [r.FatherId],
+        _ => [],
+    };
+
     /// <summary>
     /// Rewrite the object's id references (a parent's id may have changed when it
     /// was matched to an existing Calculus twin) so children still point at them.

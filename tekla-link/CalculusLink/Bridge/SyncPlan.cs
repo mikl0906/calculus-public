@@ -42,6 +42,25 @@ public class SyncItem
     public TSM.ModelObject? TeklaObject { get; set; }
     /// <summary>The hash the target will carry after an apply.</summary>
     public string? Hash { get; set; }
+    /// <summary>
+    /// Whether Apply writes this item: adds New, updates Updated, overwrites
+    /// Conflict, removes Gone. Unchanged items are never written either way.
+    /// Starts per <see cref="SyncPlan.ApplyDefaults"/>; the preview's checkboxes change it.
+    /// </summary>
+    public bool Include { get; set; } = true;
+
+    /// <summary>The object this item is about, in Calculus form: what is sent, else the twin.</summary>
+    public ModelObject? Object => Incoming ?? Existing;
+
+    /// <summary>
+    /// Identifies the same change across two classifications of the same source:
+    /// a preview and the Apply that re-reads the models before writing. A New
+    /// object from Tekla gets a fresh Calculus id per classification, so it is
+    /// known by its Tekla GUID (a control line carries none: by its content).
+    /// </summary>
+    public string Key => State == SyncState.New
+        ? $"New|{TeklaId ?? Type}|{Hash}"
+        : $"{State}|{CalculusId}|{TeklaId}|{Hash}";
 
     public override string ToString() => $"{State} {Type} {CalculusId.Substring(0, Math.Min(8, CalculusId.Length))}";
 }
@@ -57,6 +76,26 @@ public class SyncPlan
     public int Count(SyncState state) => Items.Count(i => i.State == state);
 
     public IEnumerable<SyncItem> Of(SyncState state) => Items.Where(i => i.State == state);
+
+    /// <summary>
+    /// What Apply writes unless the preview says otherwise: new and updated
+    /// objects always, conflicts and gone twins only when the options allow.
+    /// </summary>
+    public void ApplyDefaults(SyncOptions options)
+    {
+        foreach (var item in Items) item.Include = IncludedByDefault(item.State, options);
+    }
+
+    public static bool IncludedByDefault(SyncState state, SyncOptions options) => state switch
+    {
+        SyncState.Conflict => options.OverwriteConflicts,
+        SyncState.Gone => options.RemoveGone,
+        _ => true,
+    };
+
+    /// <summary>The keys of the items that would change something, for telling whether the models moved under a preview.</summary>
+    public HashSet<string> ChangeKeys() =>
+        [.. Items.Where(i => i.State != SyncState.Unchanged).Select(i => i.Key)];
 
     /// <summary>"3 new, 2 updated, 5 unchanged, 1 conflict, 1 gone" — only the non-zero parts.</summary>
     public string Summary()
@@ -77,7 +116,7 @@ public class SyncPlan
     }
 }
 
-/// <summary>What Apply may do beyond add and update.</summary>
+/// <summary>What Apply may do beyond add and update — the defaults of a preview's checkboxes.</summary>
 public class SyncOptions
 {
     /// <summary>Write conflicting objects too, overwriting the target's own changes.</summary>
@@ -94,6 +133,8 @@ public class SyncResult
     public int Skipped { get; set; }
     public int Conflicts { get; set; }
     public int Removed { get; set; }
+    /// <summary>Changes left out of the transfer (unchecked in the preview, conflicts not overwritten, gone twins kept).</summary>
+    public int Excluded { get; set; }
 
     public override string ToString()
     {
@@ -103,6 +144,7 @@ public class SyncResult
         if (Removed > 0) parts.Add($"{Removed} removed");
         if (Skipped > 0) parts.Add($"{Skipped} already up to date");
         if (Conflicts > 0) parts.Add($"{Conflicts} left in conflict");
+        if (Excluded > 0) parts.Add($"{Excluded} left out");
         return parts.Count == 0 ? "Nothing to do — everything is up to date" : string.Join(", ", parts);
     }
 }

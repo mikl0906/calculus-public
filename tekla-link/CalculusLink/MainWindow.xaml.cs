@@ -89,4 +89,23 @@ public partial class MainWindow : FluentWindow
     {
         ViewModel.CheckUpdateCommand.Execute(null);
     }
+
+    // --- The preview table ---------------------------------------------------
+
+    private void PreviewGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.DataGrid { DataContext: TransferDirectionViewModel direction } grid)
+        {
+            direction.SetSelectedRows(grid.SelectedItems.OfType<PreviewRow>());
+        }
+    }
+
+    /// <summary>Space includes the selected rows, or leaves them out when all are included already.</summary>
+    private void PreviewGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Space || sender is not System.Windows.Controls.DataGrid { DataContext: TransferDirectionViewModel direction }) return;
+        if (direction.SelectedRows.Count == 0) return;
+        direction.SetIncluded(direction.SelectedRows, direction.SelectedRows.Any(r => !r.Include));
+        e.Handled = true;
+    }
 }

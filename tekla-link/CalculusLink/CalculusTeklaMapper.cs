@@ -11,9 +11,8 @@ using TSM = Tekla.Structures.Model;
 namespace CalculusLink;
 
 // TODO:
-// 1) Beam StartOffset/EndOffset mapping is currently ignored
-// 2) Weld line type mapping is currently ignored
-// 3) Check Rebar mapping
+// 1) Weld line type mapping is currently ignored
+// 2) Check Rebar mapping
 
 public static class CalculusTeklaMapper
 {
@@ -257,6 +256,36 @@ public static class CalculusTeklaMapper
         }
     }
 
+    // Beam end offsets. Tekla's Dx runs along the part (start -> end), Dy and Dz
+    // across it in a frame that IGNORES the profile rotation: y = Z × x (for a
+    // vertical part +Y), z = x × y — measured on Tekla 2025, Oct 19 2026. Calculus
+    // builds the same unrotated frame (core objects/lcs.ts beamRefDirection) but
+    // turns y and z by the beam's Angle before applying the offset, so the two
+    // cross components rotate by the angle on the way through.
+
+    /// <summary>Tekla stores offsets to ~0.001 mm of noise (100 reads back as 99.9992).</summary>
+    const int OffsetDecimals = 2;
+
+    static TSM.Offset ToTeklaOffset(Vector3 offset, double angle)
+    {
+        var (sin, cos) = (Math.Sin(angle), Math.Cos(angle));
+        return new TSM.Offset
+        {
+            Dx = offset.X,
+            Dy = offset.Y * cos - offset.Z * sin,
+            Dz = offset.Y * sin + offset.Z * cos,
+        };
+    }
+
+    static Vector3 ToCalculusOffset(TSM.Offset offset, double angle)
+    {
+        var (sin, cos) = (Math.Sin(angle), Math.Cos(angle));
+        return new Vector3(
+            (float)Math.Round(offset.Dx, OffsetDecimals),
+            (float)Math.Round(offset.Dy * cos + offset.Dz * sin, OffsetDecimals),
+            (float)Math.Round(-offset.Dy * sin + offset.Dz * cos, OffsetDecimals));
+    }
+
     public static void ToTeklaBeam(Beam beam, TSM.Beam teklaBeam)
     {
         // TODO: Smarter profile mapping
@@ -278,18 +307,8 @@ public static class CalculusTeklaMapper
             Prefix = beam.AssemblyNumber.Prefix,
             StartNumber = beam.AssemblyNumber.StartNumber,
         };
-        teklaBeam.StartPointOffset = new TSM.Offset
-        {
-            Dx = beam.StartOffset.X,
-            Dy = beam.StartOffset.Y,
-            Dz = beam.StartOffset.Z
-        };
-        teklaBeam.EndPointOffset = new TSM.Offset
-        {
-            Dx = beam.EndOffset.X,
-            Dy = beam.EndOffset.Y,
-            Dz = beam.EndOffset.Z
-        };
+        teklaBeam.StartPointOffset = ToTeklaOffset(beam.StartOffset, beam.Angle);
+        teklaBeam.EndPointOffset = ToTeklaOffset(beam.EndOffset, beam.Angle);
 
         ToTeklaBeamPosition(beam, teklaBeam);
     }
@@ -318,16 +337,11 @@ public static class CalculusTeklaMapper
             Prefix = teklaBeam.AssemblyNumber.Prefix,
             StartNumber = teklaBeam.AssemblyNumber.StartNumber
         };
-        beam.StartOffset = new Vector3(
-            (float)teklaBeam.StartPointOffset.Dx,
-            (float)teklaBeam.StartPointOffset.Dy,
-            (float)teklaBeam.StartPointOffset.Dz);
-        beam.EndOffset = new Vector3(
-            (float)teklaBeam.EndPointOffset.Dx,
-            (float)teklaBeam.EndPointOffset.Dy,
-            (float)teklaBeam.EndPointOffset.Dz);
 
+        // The position first: the offsets are expressed through its angle.
         ToCalculusBeamPosition(teklaBeam, beam);
+        beam.StartOffset = ToCalculusOffset(teklaBeam.StartPointOffset, beam.Angle);
+        beam.EndOffset = ToCalculusOffset(teklaBeam.EndPointOffset, beam.Angle);
 
         beam.Userdata.Add("tekla_id", teklaBeam.Identifier.GUID.ToString());
     }
@@ -496,18 +510,8 @@ public static class CalculusTeklaMapper
         teklaBeam.Profile.ProfileString = teklaProfile;
         teklaBeam.Material.MaterialString = beam.Material;
         teklaBeam.Class = TSM.BooleanPart.BooleanOperativeClassName;
-        teklaBeam.StartPointOffset = new TSM.Offset
-        {
-            Dx = beam.StartOffset.X,
-            Dy = beam.StartOffset.Y,
-            Dz = beam.StartOffset.Z
-        };
-        teklaBeam.EndPointOffset = new TSM.Offset
-        {
-            Dx = beam.EndOffset.X,
-            Dy = beam.EndOffset.Y,
-            Dz = beam.EndOffset.Z
-        };
+        teklaBeam.StartPointOffset = ToTeklaOffset(beam.StartOffset, beam.Angle);
+        teklaBeam.EndPointOffset = ToTeklaOffset(beam.EndOffset, beam.Angle);
 
         ToTeklaBeamPosition(beam, teklaBeam);
     }
@@ -568,17 +572,11 @@ public static class CalculusTeklaMapper
             Profile = teklaBeam.Profile.ProfileString,
             Material = teklaBeam.Material.MaterialString,
             Class = int.TryParse(teklaBeam.Class, out var cls) ? cls : 0,
-            StartOffset = new Vector3(
-                (float)teklaBeam.StartPointOffset.Dx,
-                (float)teklaBeam.StartPointOffset.Dy,
-                (float)teklaBeam.StartPointOffset.Dz),
-            EndOffset = new Vector3(
-                (float)teklaBeam.EndPointOffset.Dx,
-                (float)teklaBeam.EndPointOffset.Dy,
-                (float)teklaBeam.EndPointOffset.Dz)
         };
 
         ToCalculusBeamPosition(teklaBeam, beam);
+        beam.StartOffset = ToCalculusOffset(teklaBeam.StartPointOffset, beam.Angle);
+        beam.EndOffset = ToCalculusOffset(teklaBeam.EndPointOffset, beam.Angle);
 
         return beam;
     }

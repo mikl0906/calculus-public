@@ -191,11 +191,49 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
         return ObjectsFromResult(result);
     }
 
-    /// <summary>getSelection with full objects.</summary>
-    public async Task<List<ModelObject>> GetSelectionAsync()
+    /// <summary>
+    /// getSelection with full objects, plus the ids of selected objects this side
+    /// does not mirror (component instances, analytical objects): those drop out
+    /// of <c>Objects</c> but stay in <c>Ids</c>.
+    /// </summary>
+    public async Task<(List<string> Ids, List<ModelObject> Objects)> GetSelectionAsync()
     {
         var result = await CallAsync("getSelection", new JsonObject { ["full"] = true });
-        return ObjectsFromResult(result);
+        var ids = result["ids"]?.AsArray().Select(n => n!.GetValue<string>()).ToList() ?? [];
+        return (ids, ObjectsFromResult(result));
+    }
+
+    /// <summary>
+    /// getComponentChildren — the children of the given component instances, and
+    /// the ids of children that are themselves instances (not mirrored here).
+    /// </summary>
+    public async Task<(List<ModelObject> Children, List<string> NestedInstanceIds)> GetComponentChildrenAsync(IReadOnlyList<string> ids)
+    {
+        if (ids.Count == 0) return ([], []);
+        var idArray = new JsonArray();
+        foreach (var id in ids) idArray.Add(id);
+        var result = await CallAsync("getComponentChildren", new JsonObject { ["ids"] = idArray });
+        var children = new JsonArray();
+        var nested = new List<string>();
+        foreach (var instance in result["instances"]?.AsArray() ?? [])
+        {
+            foreach (var child in instance?["children"]?.AsArray() ?? [])
+            {
+                if (child is null) continue;
+                if (child["type"]?.GetValue<string>() == "component")
+                    nested.Add(child["id"]!.GetValue<string>());
+                children.Add(child.DeepClone());
+            }
+        }
+        return (CalculusModelSerializer.DeserializeObjects(children.ToJsonString()), nested);
+    }
+
+    /// <summary>setSelection — replace the editor selection with exactly these ids.</summary>
+    public async Task SetSelectionAsync(IEnumerable<string> ids)
+    {
+        var idArray = new JsonArray();
+        foreach (var id in ids) idArray.Add(id);
+        await CallAsync("setSelection", new JsonObject { ["ids"] = idArray });
     }
 
     /// <summary>getRelatedObjects — pull in objects the given ids reference (e.g. a bolt's parts).</summary>

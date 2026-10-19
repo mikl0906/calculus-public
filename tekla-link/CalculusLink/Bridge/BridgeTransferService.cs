@@ -18,6 +18,8 @@ namespace CalculusLink.Bridge;
 /// (<c>userdata.tekla_id</c> on the Calculus side, <c>CALCULUS_ID</c> UDA on the
 /// Tekla side) and compared through <see cref="SyncHash"/>, whose baseline on
 /// both twins tells an update from a conflict (https://docs.calculus.build/reference/tekla-plugin/sync-behavior).
+/// What the source holds is the caller's (<see cref="TransferSource"/>); Apply
+/// writes the items whose <see cref="SyncItem.Include"/> is set.
 ///
 /// Caller is responsible for the work-plane (coordinate-system) setup/restore and
 /// for running this off the UI thread, mirroring the file import/export commands.
@@ -26,7 +28,7 @@ public static class BridgeTransferService
 {
     // --- Tekla -> Calculus ---------------------------------------------------
 
-    /// <summary>What sending the selected Tekla objects to Calculus would do.</summary>
+    /// <summary>What sending these Tekla objects to Calculus would do.</summary>
     public static async Task<SyncPlan> ClassifyToCalculusAsync(
         CalculusBridgeClient client,
         List<TSM.ModelObject> selectedTeklaObjects,
@@ -143,11 +145,10 @@ public static class BridgeTransferService
         return plan;
     }
 
-    /// <summary>Do what the plan says, per the options.</summary>
+    /// <summary>Do what the plan says for its included items.</summary>
     public static async Task<SyncResult> ApplyToCalculusAsync(
         CalculusBridgeClient client,
         SyncPlan plan,
-        SyncOptions options,
         TSM.Model teklaModel)
     {
         var result = new SyncResult();
@@ -159,6 +160,12 @@ public static class BridgeTransferService
 
         foreach (var item in plan.Items)
         {
+            if (!item.Include && item.State != SyncState.Unchanged)
+            {
+                if (item.State == SyncState.Conflict) result.Conflicts++;
+                else result.Excluded++;
+                continue;
+            }
             switch (item.State)
             {
                 case SyncState.New:
@@ -168,20 +175,11 @@ public static class BridgeTransferService
                     result.Added++;
                     break;
                 case SyncState.Updated:
+                case SyncState.Conflict:
                     Stamp(item.Incoming!, item.Hash!);
                     updates.Add(item.Incoming!);
                     written.Add(item);
                     result.Updated++;
-                    break;
-                case SyncState.Conflict:
-                    if (options.OverwriteConflicts)
-                    {
-                        Stamp(item.Incoming!, item.Hash!);
-                        updates.Add(item.Incoming!);
-                        written.Add(item);
-                        result.Updated++;
-                    }
-                    else result.Conflicts++;
                     break;
                 case SyncState.Unchanged:
                     // Up to date, but a twin from before the baseline existed gets one
@@ -195,11 +193,8 @@ public static class BridgeTransferService
                     result.Skipped++;
                     break;
                 case SyncState.Gone:
-                    if (options.RemoveGone)
-                    {
-                        removes.Add(item.CalculusId);
-                        result.Removed++;
-                    }
+                    removes.Add(item.CalculusId);
+                    result.Removed++;
                     break;
             }
         }
@@ -235,14 +230,18 @@ public static class BridgeTransferService
 
     // --- Calculus -> Tekla ---------------------------------------------------
 
-    /// <summary>What bringing the editor's selection into Tekla would do.</summary>
+    /// <summary>
+    /// What bringing these Calculus objects into Tekla would do. Gone twins are
+    /// looked for among <paramref name="teklaObjects"/> only: the selection, or
+    /// the whole model when that is the scope.
+    /// </summary>
     public static async Task<SyncPlan> ClassifyToTeklaAsync(
         CalculusBridgeClient client,
-        List<TSM.ModelObject> selectedTeklaObjects,
+        List<ModelObject> selected,
+        List<TSM.ModelObject> teklaObjects,
         TSM.Model teklaModel)
     {
         var plan = new SyncPlan { Direction = SyncDirection.CalculusToTekla };
-        var selected = await client.GetSelectionAsync();
         if (selected.Count == 0)
         {
             return plan;
@@ -289,12 +288,13 @@ public static class BridgeTransferService
             });
         }
 
-        // Gone: Tekla objects IN THE TEKLA SELECTION linked to a Calculus object that
-        // no longer exists (the whole Tekla model is too big to scan for the UDA).
-        if (selectedTeklaObjects.Count > 0)
+        // Gone: Tekla objects among the given ones linked to a Calculus object that
+        // no longer exists. Asking every Tekla object for the UDA is slow, so the
+        // whole model is scanned only when it is the scope.
+        if (teklaObjects.Count > 0)
         {
             var calculusIds = new HashSet<string>((await client.GetAllObjectsAsync()).Select(e => e.GetId()));
-            foreach (var t in selectedTeklaObjects)
+            foreach (var t in teklaObjects)
             {
                 var calcId = TeklaUda.GetCalculusId(t);
                 if (calcId is null || calculusIds.Contains(calcId) || byId.ContainsKey(calcId)) continue;
@@ -309,34 +309,41 @@ public static class BridgeTransferService
         return plan;
     }
 
-    /// <summary>Do what the plan says, per the options.</summary>
+    /// <summary>Do what the plan says for its included items.</summary>
     public static async Task<SyncResult> ApplyToTeklaAsync(
         CalculusBridgeClient client,
         SyncPlan plan,
-        SyncOptions options,
         TSM.Model teklaModel)
     {
         var result = new SyncResult();
         var model = new Model { Objects = [] };
         var skipModify = new HashSet<string>();
+        var leftOut = new HashSet<string>();
         var hashes = new Dictionary<string, string>();
 
         foreach (var item in plan.Items)
         {
+            if (!item.Include && item.State != SyncState.Unchanged)
+            {
+                if (item.State == SyncState.Conflict) result.Conflicts++;
+                else result.Excluded++;
+                // A twin left as it is can still be the host a dependent needs
+                // (a bolt's part): pass it on, resolved but not modified.
+                if (item.State is SyncState.Updated or SyncState.Conflict)
+                {
+                    model.Objects.Add(item.Incoming!);
+                    skipModify.Add(item.CalculusId);
+                    leftOut.Add(item.CalculusId);
+                }
+                continue;
+            }
             switch (item.State)
             {
                 case SyncState.New:
                 case SyncState.Updated:
+                case SyncState.Conflict:
                     model.Objects.Add(item.Incoming!);
                     hashes[item.CalculusId] = item.Hash!;
-                    break;
-                case SyncState.Conflict:
-                    if (options.OverwriteConflicts)
-                    {
-                        model.Objects.Add(item.Incoming!);
-                        hashes[item.CalculusId] = item.Hash!;
-                    }
-                    else result.Conflicts++;
                     break;
                 case SyncState.Unchanged:
                     // Still passed to the inserter — a dependent may need it as a
@@ -347,7 +354,7 @@ public static class BridgeTransferService
                     result.Skipped++;
                     break;
                 case SyncState.Gone:
-                    if (options.RemoveGone && item.TeklaObject is not null)
+                    if (item.TeklaObject is not null)
                     {
                         if (item.TeklaObject.Delete()) result.Removed++;
                         else Log.Error("Failed to delete Tekla object {Guid}", item.TeklaId);
@@ -368,6 +375,8 @@ public static class BridgeTransferService
         {
             var calcId = kv.Key;
             var teklaObj = kv.Value;
+            // Left out of this transfer: its link and baseline stay as they were.
+            if (leftOut.Contains(calcId)) continue;
             var hash = hashes.TryGetValue(calcId, out var h) ? h : null;
 
             var changed = false;

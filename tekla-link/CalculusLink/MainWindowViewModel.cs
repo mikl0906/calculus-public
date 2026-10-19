@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections;
+using System.IO;
 using System.Reflection;
 
 using CalculusModel;
@@ -15,6 +16,7 @@ using TeklaAPIExtensions.Model;
 using Wpf.Ui;
 
 using TSM = Tekla.Structures.Model;
+using TSUI = Tekla.Structures.Model.UI;
 
 namespace CalculusLink;
 
@@ -24,9 +26,24 @@ public enum CoordinateSystemType
     Workplane,
 }
 
-public partial class MainWindowViewModel(ISnackbarService snackbarService) : ObservableObject
+public partial class MainWindowViewModel : ObservableObject
 {
-    private readonly SnackbarHelper _snackbar = new(snackbarService);
+    private readonly SnackbarHelper _snackbar;
+
+    public MainWindowViewModel(ISnackbarService snackbarService)
+    {
+        _snackbar = new SnackbarHelper(snackbarService);
+        foreach (var direction in new[] { ToCalculus, ToTekla })
+        {
+            var d = direction;
+            d.SourceChanged += () => { if (d.HasPreview) CancelPreviewCommand.Execute(d); };
+            d.SelectionChanged += OnPreviewRowsSelected;
+            d.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(TransferDirectionViewModel.HasPreview)) ApplyCommand.NotifyCanExecuteChanged();
+            };
+        }
+    }
 
     [ObservableProperty]
     public partial bool IsImporting { get; set; } = false;
@@ -37,11 +54,24 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
     public partial CoordinateSystemType ImportCoordinateSystem { get; set; } = CoordinateSystemType.Global;
     [ObservableProperty]
     public partial CoordinateSystemType ExportCoordinateSystem { get; set; } = CoordinateSystemType.Global;
+    /// <summary>What the file export reads from Tekla; a .calculus file is always imported whole.</summary>
+    [ObservableProperty]
+    public partial TransferScope ExportScope { get; set; } = TransferScope.Selected;
     public List<CoordinateSystemType> CoordinateSystemOptions => [.. Enum.GetValues(typeof(CoordinateSystemType)).Cast<CoordinateSystemType>()];
+    public List<ScopeOption> ScopeOptions { get; } =
+    [
+        new(TransferScope.Selected, "Selected"),
+        new(TransferScope.WholeModel, "Whole model"),
+    ];
 
     // --- Direct (bridge) transfer state ----------------------------------------
 
     private CalculusBridgeClient? _bridgeClient;
+
+    /// <summary>The Tekla → Calculus card.</summary>
+    public TransferDirectionViewModel ToCalculus { get; } = new(SyncDirection.TeklaToCalculus);
+    /// <summary>The Calculus → Tekla card.</summary>
+    public TransferDirectionViewModel ToTekla { get; } = new(SyncDirection.CalculusToTekla);
 
     // --- Which transfer the window shows (the tabs at the top) -----------------
 
@@ -73,17 +103,13 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
     public partial bool ShowConnectionSettings { get; set; } = false;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(TransferToCalculusCommand))]
-    [NotifyCanExecuteChangedFor(nameof(TransferToTeklaCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviewToCalculusCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviewToTeklaCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PreviewCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCommand))]
     public partial bool BridgeRunning { get; set; } = false;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(TransferToCalculusCommand))]
-    [NotifyCanExecuteChangedFor(nameof(TransferToTeklaCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviewToCalculusCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviewToTeklaCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PreviewCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCommand))]
     public partial bool EditorConnected { get; set; } = false;
     /// <summary>The models open in Calculus, as the bridge lists them.</summary>
     [ObservableProperty]
@@ -95,44 +121,33 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
 
     /// <summary>The model transfers go to. Null until one is picked (or the only one).</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(TransferToCalculusCommand))]
-    [NotifyCanExecuteChangedFor(nameof(TransferToTeklaCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviewToCalculusCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviewToTeklaCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PreviewCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCommand))]
     public partial BridgeEditor? SelectedEditor { get; set; }
 
-    partial void OnSelectedEditorChanged(BridgeEditor? value)
+    partial void OnSelectedEditorChanged(BridgeEditor? oldValue, BridgeEditor? newValue)
     {
-        if (_bridgeClient is not null) _bridgeClient.Editor = value?.Id;
-        EditorConnected = value is not null;
-        BridgeStatusText = value is null
+        if (_bridgeClient is not null) _bridgeClient.Editor = newValue?.Id;
+        EditorConnected = newValue is not null;
+        BridgeStatusText = newValue is null
             ? (Editors.Count == 0 ? "Calculus is running — no model is open" : "Pick the model to transfer with")
-            : $"Connected to {value}";
+            : $"Connected to {newValue}";
+        // Every refresh hands over a fresh record of the same editor; a preview is
+        // about one model, and only a different model makes it stale.
+        if (oldValue?.Id != newValue?.Id)
+        {
+            ToCalculus.ClearPreview();
+            ToTekla.ClearPreview();
+        }
     }
 
     [ObservableProperty]
     public partial string BridgeStatusText { get; set; } = "Not connected";
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(TransferToCalculusCommand))]
-    [NotifyCanExecuteChangedFor(nameof(TransferToTeklaCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviewToCalculusCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviewToTeklaCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PreviewCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCommand))]
     public partial bool IsTransferring { get; set; } = false;
-
-    // --- What a transfer may do beyond add and update (per direction) ----------
-
-    [ObservableProperty]
-    public partial bool OverwriteConflictsInCalculus { get; set; } = false;
-
-    [ObservableProperty]
-    public partial bool RemoveGoneInCalculus { get; set; } = false;
-
-    [ObservableProperty]
-    public partial bool OverwriteConflictsInTekla { get; set; } = false;
-
-    [ObservableProperty]
-    public partial bool RemoveGoneInTekla { get; set; } = false;
 
     readonly Version _appVersion = Assembly.GetExecutingAssembly().GetName().Version;
     public string AppVersion => "v" + _appVersion.Major + "." + _appVersion.Minor;
@@ -219,7 +234,8 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
                 return;
             }
 
-            Log.Information("Exporting selected objects");
+            var scope = ExportScope;
+            Log.Information("Exporting {Scope} objects", scope);
             IsExporting = true;
 
             // Store the current work plane to restore it after export
@@ -227,10 +243,12 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
             var currentPlane = workPlaneHandler.GetCurrentTransformationPlane();
             try
             {
-                var selected = new TSM.UI.ModelObjectSelector().GetSelectedObjects().OfType<TSM.ModelObject>().ToList();
+                var selected = TransferSource.TeklaObjects(teklaModel, scope);
                 if (selected.Count == 0)
                 {
-                    throw new Exception("No objects selected for export");
+                    throw new Exception(scope == TransferScope.Selected
+                        ? "No objects selected for export"
+                        : "The Tekla model has nothing to export");
                 }
 
                 var saveFileDialog = new Microsoft.Win32.SaveFileDialog
@@ -364,44 +382,17 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
         }
     }
 
-    // --- Direct (bridge) transfer: preview, then apply (https://docs.calculus.build/reference/tekla-plugin/sync-behavior) ---
-
-    [ObservableProperty]
-    public partial bool HasPreviewToCalculus { get; set; }
-    [ObservableProperty]
-    public partial string PreviewToCalculusText { get; set; } = string.Empty;
-    [ObservableProperty]
-    public partial List<SyncItem> PreviewToCalculusItems { get; set; } = [];
-
-    [ObservableProperty]
-    public partial bool HasPreviewToTekla { get; set; }
-    [ObservableProperty]
-    public partial string PreviewToTeklaText { get; set; } = string.Empty;
-    [ObservableProperty]
-    public partial List<SyncItem> PreviewToTeklaItems { get; set; } = [];
-
-    private SyncPlan? _planToCalculus;
-    private DateTime _planToCalculusAt;
-    private SyncPlan? _planToTekla;
-    private DateTime _planToTeklaAt;
-    /// <summary>A preview this recent is what Apply acts on; older, it classifies again.</summary>
-    private static readonly TimeSpan PlanFreshness = TimeSpan.FromSeconds(60);
-
-    private sealed class PreviewOutcome(SyncPlan plan, bool coloured)
-    {
-        public SyncPlan Plan { get; } = plan;
-        public bool Coloured { get; } = coloured;
-    }
+    // --- Direct (bridge) transfer: preview, then apply or cancel (https://docs.calculus.build/reference/tekla-plugin/sync-behavior) ---
 
     /// <summary>
     /// Run <paramref name="body"/> against Tekla and the connected editor on a
-    /// worker thread: the Tekla selection resolved, the work plane set per
-    /// <paramref name="coordinateSystem"/> and restored after. Errors go to the
-    /// snackbar; null means it did not run or failed.
+    /// worker thread, the work plane set per <paramref name="coordinateSystem"/>
+    /// and restored after. Errors go to the snackbar; null means it did not run
+    /// or failed.
     /// </summary>
     private async Task<T?> OnTekla<T>(
         CoordinateSystemType coordinateSystem,
-        Func<CalculusBridgeClient, List<TSM.ModelObject>, TSM.Model, Task<T>> body,
+        Func<CalculusBridgeClient, TSM.Model, Task<T>> body,
         string failure) where T : class
     {
         if (_bridgeClient is null)
@@ -420,8 +411,6 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
                 {
                     throw new InvalidOperationException("Tekla Structures is not connected");
                 }
-                var selected = new TSM.UI.ModelObjectSelector().GetSelectedObjects()
-                    .OfType<TSM.ModelObject>().ToList();
                 var workPlaneHandler = teklaModel.GetWorkPlaneHandler();
                 var currentPlane = workPlaneHandler.GetCurrentTransformationPlane();
                 if (coordinateSystem == CoordinateSystemType.Global)
@@ -430,7 +419,7 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
                 }
                 try
                 {
-                    return await body(client, selected, teklaModel);
+                    return await body(client, teklaModel);
                 }
                 finally
                 {
@@ -450,121 +439,201 @@ public partial class MainWindowViewModel(ISnackbarService snackbarService) : Obs
         }
     }
 
+    /// <summary>
+    /// Read the source and classify. With <paramref name="again"/> (an Apply
+    /// after a preview) the objects that preview read are read again by id — the
+    /// selection may have moved since, not least by selecting preview rows.
+    /// </summary>
+    private static async Task<(SyncPlan plan, PreviewSource source)> Classify(
+        SyncDirection direction,
+        CalculusBridgeClient client,
+        TSM.Model teklaModel,
+        TransferScope scope,
+        CoordinateSystemType coordinateSystem,
+        PreviewSource? again = null)
+    {
+        static List<string> Guids(List<TSM.ModelObject> objects) =>
+            [.. objects.Select(o => o.Identifier.GUID.ToString())];
+        var teklaObjects = again?.TeklaIds is { } teklaIds
+            ? TransferSource.TeklaObjects(teklaModel, teklaIds)
+            : TransferSource.TeklaObjects(teklaModel, scope);
+
+        if (direction == SyncDirection.TeklaToCalculus)
+        {
+            var plan = await BridgeTransferService.ClassifyToCalculusAsync(client, teklaObjects, teklaModel);
+            if (plan.Items.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    plan.NotTransferable > 0 ? "No transferable objects in Tekla"
+                    : scope == TransferScope.Selected ? "No objects selected in Tekla"
+                    : "The Tekla model has nothing to transfer");
+            }
+            return (plan, new PreviewSource
+            {
+                Scope = scope,
+                CoordinateSystem = coordinateSystem,
+                TeklaIds = scope == TransferScope.Selected ? Guids(teklaObjects) : null,
+            });
+        }
+
+        var calculusObjects = again?.CalculusIds is { } calculusIds
+            ? await TransferSource.CalculusObjects(client, calculusIds)
+            : await TransferSource.CalculusObjects(client, scope);
+        var toTekla = await BridgeTransferService.ClassifyToTeklaAsync(client, calculusObjects, teklaObjects, teklaModel);
+        if (toTekla.Items.Count == 0)
+        {
+            throw new InvalidOperationException(scope == TransferScope.Selected
+                ? "Nothing transferable is selected in Calculus"
+                : "The Calculus model has nothing to transfer");
+        }
+        return (toTekla, new PreviewSource
+        {
+            Scope = scope,
+            CoordinateSystem = coordinateSystem,
+            TeklaIds = scope == TransferScope.Selected ? Guids(teklaObjects) : null,
+            CalculusIds = scope == TransferScope.Selected ? [.. calculusObjects.Select(o => o.GetId())] : null,
+        });
+    }
+
+    private sealed class PreviewOutcome(SyncPlan plan, PreviewSource source, bool coloured, SyncResult? result = null)
+    {
+        public SyncPlan Plan { get; } = plan;
+        public PreviewSource Source { get; } = source;
+        public bool Coloured { get; } = coloured;
+        /// <summary>Set when Apply wrote; null when it found the models changed and previewed again.</summary>
+        public SyncResult? Result { get; } = result;
+    }
+
     private static string PreviewText(SyncPlan plan, bool coloured) =>
         Capitalize(plan.Summary()) + (coloured
-            ? ". Highlighted in both models in the colours below."
+            ? ". Highlighted in both models; select rows to select them there."
             : $". Too many objects to highlight (over {SyncPreview.MaxColoured}); the list has them all.");
 
     private static string Capitalize(string text) =>
         text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 
+    private TransferDirectionViewModel Other(TransferDirectionViewModel d) => d == ToCalculus ? ToTekla : ToCalculus;
+
+    /// <summary>Classify and show what Apply would do, in both models and in the card's table. Nothing is written.</summary>
     [RelayCommand(CanExecute = nameof(CanTransfer))]
-    async Task PreviewToCalculus()
+    async Task Preview(TransferDirectionViewModel d)
     {
-        var outcome = await OnTekla(ExportCoordinateSystem, async (client, selected, teklaModel) =>
+        // The models show one preview at a time.
+        Other(d).ClearPreview();
+        var scope = d.Scope;
+        var coordinateSystem = d.CoordinateSystem;
+        var options = d.Options;
+        var outcome = await OnTekla(coordinateSystem, async (client, teklaModel) =>
         {
-            if (selected.Count == 0) throw new InvalidOperationException("No objects selected in Tekla");
-            var plan = await BridgeTransferService.ClassifyToCalculusAsync(client, selected, teklaModel);
-            return new PreviewOutcome(plan, await SyncPreview.ShowAsync(client, plan));
-        }, "Preview to Calculus failed");
+            var (plan, source) = await Classify(d.Direction, client, teklaModel, scope, coordinateSystem);
+            plan.ApplyDefaults(options);
+            return new PreviewOutcome(plan, source, await SyncPreview.ShowAsync(client, plan));
+        }, "Preview failed");
         if (outcome is null) return;
-        _planToCalculus = outcome.Plan;
-        _planToCalculusAt = DateTime.UtcNow;
-        PreviewToCalculusItems = outcome.Plan.Items.Where(i => i.State != SyncState.Unchanged).ToList();
-        PreviewToCalculusText = PreviewText(outcome.Plan, outcome.Coloured);
-        HasPreviewToCalculus = true;
+        d.ShowPreview(outcome.Plan, outcome.Source, PreviewText(outcome.Plan, outcome.Coloured));
     }
 
-    [RelayCommand(CanExecute = nameof(CanTransfer))]
-    async Task PreviewToTekla()
+    /// <summary>
+    /// Write the previewed changes that are checked. The source is classified
+    /// again first: when the result differs from the preview (either model
+    /// changed meanwhile), nothing is written and the card previews the new
+    /// state instead, keeping the user's choices for the changes that stayed.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanApply))]
+    async Task Apply(TransferDirectionViewModel d)
     {
-        var outcome = await OnTekla(ImportCoordinateSystem, async (client, selected, teklaModel) =>
+        if (d.Plan is not { } preview || d.Source is not { } source) return;
+        var previewKeys = preview.ChangeKeys();
+        var included = new HashSet<string>(preview.Items.Where(i => i.Include).Select(i => i.Key));
+        var options = d.Options;
+        var outcome = await OnTekla(source.CoordinateSystem, async (client, teklaModel) =>
         {
-            var plan = await BridgeTransferService.ClassifyToTeklaAsync(client, selected, teklaModel);
-            if (plan.Items.Count == 0) throw new InvalidOperationException("Nothing is selected in Calculus");
-            return new PreviewOutcome(plan, await SyncPreview.ShowAsync(client, plan));
-        }, "Preview to Tekla failed");
+            var (plan, again) = await Classify(d.Direction, client, teklaModel, source.Scope, source.CoordinateSystem, source);
+            var same = plan.ChangeKeys().SetEquals(previewKeys);
+            plan.ApplyDefaults(options);
+            foreach (var item in plan.Items)
+            {
+                if (previewKeys.Contains(item.Key)) item.Include = included.Contains(item.Key);
+            }
+            if (!same)
+            {
+                return new PreviewOutcome(plan, again, await SyncPreview.ShowAsync(client, plan));
+            }
+            await SyncPreview.ClearAsync(client);
+            var result = d.ToCalculus
+                ? await BridgeTransferService.ApplyToCalculusAsync(client, plan, teklaModel)
+                : await BridgeTransferService.ApplyToTeklaAsync(client, plan, teklaModel);
+            return new PreviewOutcome(plan, again, false, result);
+        }, "Transfer failed");
         if (outcome is null) return;
-        _planToTekla = outcome.Plan;
-        _planToTeklaAt = DateTime.UtcNow;
-        PreviewToTeklaItems = outcome.Plan.Items.Where(i => i.State != SyncState.Unchanged).ToList();
-        PreviewToTeklaText = PreviewText(outcome.Plan, outcome.Coloured);
-        HasPreviewToTekla = true;
+
+        if (outcome.Result is null)
+        {
+            d.ShowPreview(outcome.Plan, outcome.Source,
+                "The models changed since the preview — check the list and apply again. " + PreviewText(outcome.Plan, outcome.Coloured));
+            _snackbar.ShowWarningMessage("The models changed since the preview: nothing was written");
+            return;
+        }
+        d.ClearPreview();
+        var message = $"{(d.ToCalculus ? "To Calculus" : "To Tekla")}: {outcome.Result}";
+        _snackbar.ShowSuccessMessage(message);
+        TSM.Operations.Operation.DisplayPrompt($"Calculus Link: {message}");
+    }
+
+    /// <summary>Drop the preview: the colours leave both models, nothing is written.</summary>
+    [RelayCommand]
+    async Task CancelPreview(TransferDirectionViewModel d)
+    {
+        d.ClearPreview();
+        if (_bridgeClient is null) return;
+        try { await Task.Run(() => SyncPreview.ClearAsync(_bridgeClient)); }
+        catch (Exception ex) { Log.Warning(ex, "Clearing the preview failed"); }
     }
 
     [RelayCommand]
-    async Task ClearPreview()
-    {
-        if (_bridgeClient is not null)
-        {
-            try { await SyncPreview.ClearAsync(_bridgeClient); }
-            catch (Exception ex) { Log.Warning(ex, "Clearing the preview failed"); }
-        }
-        ForgetPreviews();
-    }
+    void IncludeSelected(TransferDirectionViewModel d) => d.SetIncluded(d.SelectedRows, true);
 
-    private void ForgetPreviews()
-    {
-        _planToCalculus = null;
-        _planToTekla = null;
-        HasPreviewToCalculus = false;
-        HasPreviewToTekla = false;
-        PreviewToCalculusItems = [];
-        PreviewToTeklaItems = [];
-    }
+    [RelayCommand]
+    void ExcludeSelected(TransferDirectionViewModel d) => d.SetIncluded(d.SelectedRows, false);
 
-    [RelayCommand(CanExecute = nameof(CanTransfer))]
-    async Task TransferToCalculus()
+    bool CanTransfer(TransferDirectionViewModel? d) => BridgeRunning && EditorConnected && !IsTransferring;
+    bool CanApply(TransferDirectionViewModel? d) => CanTransfer(d) && d?.HasPreview == true;
+
+    // --- Preview rows selected -> the same objects selected in both models -------
+
+    private CancellationTokenSource? _selectRows;
+
+    /// <summary>
+    /// Select the rows' objects in Tekla and Calculus — where each one exists: a
+    /// new object only on its source side, a gone twin only on its target side.
+    /// Debounced, so dragging over rows asks the models once.
+    /// </summary>
+    private async void OnPreviewRowsSelected(TransferDirectionViewModel d)
     {
-        var fresh = _planToCalculus is not null && DateTime.UtcNow - _planToCalculusAt < PlanFreshness
-            ? _planToCalculus : null;
-        var options = new SyncOptions
+        _selectRows?.Cancel();
+        var cts = _selectRows = new CancellationTokenSource();
+        try { await Task.Delay(150, cts.Token); }
+        catch (TaskCanceledException) { return; }
+        if (_bridgeClient is not { } client || IsTransferring || !d.HasPreview) return;
+
+        var rows = d.SelectedRows;
+        var teklaObjects = new ArrayList(rows.Select(r => r.Item.TeklaObject).OfType<TSM.ModelObject>().ToList());
+        var calculusIds = rows
+            .Where(r => d.ToCalculus ? r.State != SyncState.New : r.State != SyncState.Gone)
+            .Select(r => r.CalculusId)
+            .Distinct()
+            .ToList();
+        try
         {
-            OverwriteConflicts = OverwriteConflictsInCalculus,
-            RemoveGone = RemoveGoneInCalculus,
-        };
-        var result = await OnTekla(ExportCoordinateSystem, async (client, selected, teklaModel) =>
-        {
-            var plan = fresh ?? await BridgeTransferService.ClassifyToCalculusAsync(client, selected, teklaModel);
-            if (plan.Items.Count == 0)
+            await Task.Run(async () =>
             {
-                throw new InvalidOperationException(selected.Count == 0
-                    ? "No objects selected in Tekla"
-                    : "No transferable objects in the selection");
-            }
-            await SyncPreview.ClearAsync(client);
-            return await BridgeTransferService.ApplyToCalculusAsync(client, plan, options, teklaModel);
-        }, "Direct transfer to Calculus failed");
-        if (result is null) return;
-        ForgetPreviews();
-        var message = $"To Calculus: {result}";
-        _snackbar.ShowSuccessMessage(message);
-        TSM.Operations.Operation.DisplayPrompt($"Calculus Link: {message}");
-    }
-
-    [RelayCommand(CanExecute = nameof(CanTransfer))]
-    async Task TransferToTekla()
-    {
-        var fresh = _planToTekla is not null && DateTime.UtcNow - _planToTeklaAt < PlanFreshness
-            ? _planToTekla : null;
-        var options = new SyncOptions
+                new TSUI.ModelObjectSelector().Select(teklaObjects);
+                await client.SetSelectionAsync(calculusIds);
+            });
+        }
+        catch (Exception ex)
         {
-            OverwriteConflicts = OverwriteConflictsInTekla,
-            RemoveGone = RemoveGoneInTekla,
-        };
-        var result = await OnTekla(ImportCoordinateSystem, async (client, selected, teklaModel) =>
-        {
-            var plan = fresh ?? await BridgeTransferService.ClassifyToTeklaAsync(client, selected, teklaModel);
-            if (plan.Items.Count == 0) throw new InvalidOperationException("Nothing is selected in Calculus");
-            await SyncPreview.ClearAsync(client);
-            return await BridgeTransferService.ApplyToTeklaAsync(client, plan, options, teklaModel);
-        }, "Direct transfer to Tekla failed");
-        if (result is null) return;
-        ForgetPreviews();
-        var message = $"To Tekla: {result}";
-        _snackbar.ShowSuccessMessage(message);
-        TSM.Operations.Operation.DisplayPrompt($"Calculus Link: {message}");
+            Log.Warning(ex, "Selecting preview rows in the models failed");
+        }
     }
-
-    bool CanTransfer() => BridgeRunning && EditorConnected && !IsTransferring;
 }
