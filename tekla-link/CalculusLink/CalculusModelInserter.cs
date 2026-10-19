@@ -182,7 +182,7 @@ public static class CalculusModelInserter
 
                 if (teklaCutPart is not null)
                 {
-                    CalculusTeklaMapper.ToTeklaCutOperativePart(cutPart.Cutter, teklaCutPart.OperativePart);
+                    CalculusTeklaMapper.ToTeklaCutOperativePart(cutPart, teklaCutPart.OperativePart);
                     if (skipModify.Contains(cutPart.Id) || teklaCutPart.Modify())
                     {
                         result.Record(cutPart.Id, teklaCutPart, isNew: false);
@@ -202,13 +202,13 @@ public static class CalculusModelInserter
                             continue;
                         }
 
-                        TSM.Part teklaOperativePart = cutPart.Cutter switch
+                        TSM.Part teklaOperativePart = cutPart switch
                         {
                             CutBeam => new TSM.Beam(),
                             CutPlate => new TSM.ContourPlate(),
-                            _ => throw new NotSupportedException($"Unsupported CutOperativePart type: {cutPart.Cutter.GetType().Name}"),
+                            _ => throw new NotSupportedException($"Unsupported cut part type: {cutPart.GetType().Name}"),
                         };
-                        CalculusTeklaMapper.ToTeklaCutOperativePart(cutPart.Cutter, teklaOperativePart);
+                        CalculusTeklaMapper.ToTeklaCutOperativePart(cutPart, teklaOperativePart);
                         if (!teklaOperativePart.Insert())
                         {
                             Log.Error("Failed to insert operative part for cut part {cutPartId}", cutPart.Id);

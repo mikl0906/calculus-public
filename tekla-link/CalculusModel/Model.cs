@@ -159,25 +159,24 @@ public class Plate : ModelObject, IPlatePosition
     public Dictionary<string, string> Userdata { get; set; } = [];
 }
 
-// CutPart
-public class CutPart : ModelObject
+// Cut beam / cut plate: a beam- or plate-shaped cutting volume, its shape
+// fields flat beside partIds (format v18; a `cutPart` with a nested `cutter`
+// before). CutPart is only the C# base, never a JSON type.
+public abstract class CutPart : ModelObject
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string[] PartIds { get; set; } = [];
-    public Cutter Cutter { get; set; } = null!;
-    public Dictionary<string, string> Userdata { get; set; } = [];
-}
-
-public abstract class Cutter;
-
-public class CutBeam : Cutter, IBeamPosition
-{
-    public Vector3 Start { get; set; }
-    public Vector3 End { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Profile { get; set; } = string.Empty;
     public string Material { get; set; } = string.Empty;
     public int Class { get; set; }
+    public Dictionary<string, string> Userdata { get; set; } = [];
+}
+
+public class CutBeam : CutPart, IBeamPosition
+{
+    public Vector3 Start { get; set; }
+    public Vector3 End { get; set; }
     public double Angle { get; set; }
     public BeamHorizontalPosition YPosition { get; set; }
     public double YOffset { get; set; }
@@ -187,13 +186,9 @@ public class CutBeam : Cutter, IBeamPosition
     public Vector3 EndOffset { get; set; }
 }
 
-public class CutPlate : Cutter, IPlatePosition
+public class CutPlate : CutPart, IPlatePosition
 {
     public Vec3WithChamfer[] Polygon { get; set; } = [];
-    public string Name { get; set; } = string.Empty;
-    public string Profile { get; set; } = string.Empty;
-    public string Material { get; set; } = string.Empty;
-    public int Class { get; set; }
     public PlatePosition ZPosition { get; set; }
     public double ZOffset { get; set; }
 }

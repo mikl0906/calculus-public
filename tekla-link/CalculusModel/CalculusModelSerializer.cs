@@ -15,7 +15,6 @@ public static class CalculusModelSerializer
             new WeldPositionConverter(),
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
             new ModelObjectJsonConverter(),
-            new CutOperativePartJsonConverter(),
             new ChamferJsonConverter(),
         },
     };
@@ -68,8 +67,10 @@ public class ModelObjectJsonConverter : JsonConverter<ModelObject>
                     return JsonSerializer.Deserialize<Beam>(root.GetRawText(), options);
                 case "plate":
                     return JsonSerializer.Deserialize<Plate>(root.GetRawText(), options);
-                case "cutPart":
-                    return JsonSerializer.Deserialize<CutPart>(root.GetRawText(), options);
+                case "cutBeam":
+                    return JsonSerializer.Deserialize<CutBeam>(root.GetRawText(), options);
+                case "cutPlate":
+                    return JsonSerializer.Deserialize<CutPlate>(root.GetRawText(), options);
                 case "cutPlane":
                     return JsonSerializer.Deserialize<CutPlane>(root.GetRawText(), options);
                 case "bolt":
@@ -96,55 +97,14 @@ public class ModelObjectJsonConverter : JsonConverter<ModelObject>
         {
             Beam => "beam",
             Plate => "plate",
-            CutPart => "cutPart",
+            CutBeam => "cutBeam",
+            CutPlate => "cutPlate",
             CutPlane => "cutPlane",
             Bolt => "bolt",
             Weld => "weld",
             Rebar => "rebar",
             Grid => "grid",
             Line => "line",
-            _ => "unknown"
-        };
-        writer.WriteString("type", typeStr);
-        // Write all other properties
-        foreach (var prop in doc.RootElement.EnumerateObject())
-        {
-            if (prop.NameEquals("type")) continue; // Avoid duplicate
-            prop.WriteTo(writer);
-        }
-        writer.WriteEndObject();
-    }
-}
-
-public class CutOperativePartJsonConverter : JsonConverter<Cutter>
-{
-    public override Cutter? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        using var doc = JsonDocument.ParseValue(ref reader);
-        var root = doc.RootElement;
-        if (root.TryGetProperty("type", out var typeProp))
-        {
-            var typeStr = typeProp.GetString();
-            switch (typeStr?.ToLowerInvariant())
-            {
-                case "beam":
-                    return JsonSerializer.Deserialize<CutBeam>(root.GetRawText(), options);
-                case "plate":
-                    return JsonSerializer.Deserialize<CutPlate>(root.GetRawText(), options);
-            }
-        }
-        throw new JsonException($"Unknown CutOperativePart type: {root}");
-    }
-
-    public override void Write(Utf8JsonWriter writer, Cutter value, JsonSerializerOptions options)
-    {
-        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(value, value.GetType(), options));
-        writer.WriteStartObject();
-        // Write type property
-        string typeStr = value switch
-        {
-            CutBeam => "beam",
-            CutPlate => "plate",
             _ => "unknown"
         };
         writer.WriteString("type", typeStr);

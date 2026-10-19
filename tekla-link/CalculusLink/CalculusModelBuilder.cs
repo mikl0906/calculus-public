@@ -118,9 +118,7 @@ public static class CalculusModelBuilder
                     Log.Warning("Skipping unsupported BooleanPart operative part type: {TypeName}", teklaBooleanPart.OperativePart.GetType().Name);
                     continue;
                 }
-                var cutPart = new CutPart();
-                CalculusTeklaMapper.ToCaclulusCutPart(teklaBooleanPart, cutPart, partIds);
-                yield return cutPart;
+                yield return CalculusTeklaMapper.ToCalculusCutPart(teklaBooleanPart, partIds);
 
             }
             else if (boolean is TSM.CutPlane teklaCutPlane)

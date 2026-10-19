@@ -49,8 +49,7 @@ public partial class PreviewRow : ObservableObject
     {
         Beam b => (b.Name, b.Profile),
         Plate p => (p.Name, p.Profile),
-        CutPart { Cutter: CutBeam c } => (c.Name, c.Profile),
-        CutPart { Cutter: CutPlate c } => (c.Name, c.Profile),
+        CutPart c => (c.Name, c.Profile),
         Bolt b => (string.Empty, $"{b.Standard} {b.Size:0.#}"),
         Rebar r => (r.Name, $"Ø{r.Size:0.#}"),
         // A Tekla twin whose Calculus object is gone has no Calculus form.

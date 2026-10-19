@@ -540,7 +540,7 @@ public static class CalculusTeklaMapper
         };
     }
 
-    public static void ToTeklaCutOperativePart(Cutter operativePart, TSM.Part teklaOperativePart)
+    public static void ToTeklaCutOperativePart(CutPart operativePart, TSM.Part teklaOperativePart)
     {
         if (operativePart is CutBeam cutBeam && teklaOperativePart is TSM.Beam teklaCutBeam)
         {
@@ -611,16 +611,17 @@ public static class CalculusTeklaMapper
         return plate;
     }
 
-    public static void ToCaclulusCutPart(TSM.BooleanPart teklaCutPart, CutPart cutPart, string[] partIds)
+    public static CutPart ToCalculusCutPart(TSM.BooleanPart teklaCutPart, string[] partIds)
     {
-        cutPart.PartIds = partIds;
-        cutPart.Cutter = teklaCutPart.OperativePart switch
+        CutPart cutPart = teklaCutPart.OperativePart switch
         {
             TSM.Beam teklaBeam => ToCalculusCutBeam(teklaBeam),
             TSM.ContourPlate teklaPlate => ToCalculusCutPlate(teklaPlate),
             _ => throw new Exception($"Unsupported boolean operative part type: {teklaCutPart.OperativePart.GetType().Name}")
         };
+        cutPart.PartIds = partIds;
         cutPart.Userdata.Add("tekla_id", teklaCutPart.Identifier.GUID.ToString());
+        return cutPart;
     }
 
     // CutPlane
