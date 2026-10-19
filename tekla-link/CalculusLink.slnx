@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Solution files/">
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="CalculusModel/CalculusModel.csproj" Id="3df55c93-679f-4874-9855-c66851491180" />
+  <Project Path="CalculusLink/CalculusLink.csproj" />
+</Solution>

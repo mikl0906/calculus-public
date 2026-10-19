@@ -1,0 +1,9 @@
+// This file maps bols standard used in Calculus to bols standard used in Tekla Structures.
+// This data is used when exporting tekla model to .calculus file and when importing .calculus file to tekla model.
+// Each line contains a pair of bols standard separated by a space.
+// Lines starting with '//' are comments and are being ignored.
+// Empty lines are also ignored.
+// The format is:
+// CalculusBoltStandard TeklaBoltStandard
+
+DIN933 933

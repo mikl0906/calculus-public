@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TEP Version="2.0">
+
+  <Product 
+    Id="CalculusLink" 
+		Name="Calculus Link for Tekla Structures"
+    UpgradeCode="4312152f-6e66-4b45-8a1b-855db2cfc081" 
+    Version="1.2" 
+    Language="1033"
+		Manufacturer="Calculus"
+		Description= "Extension to transfer data between Calculus and Tekla Structures"
+		IconPath="%TEPDEFINITIONFILEFOLDER%\Icon.png" 
+    Type="Extension">
+    <TeklaVersions>
+      <TeklaVersion Name="2099.1"/>
+      <MinTeklaVersion Name="2022.0"/>
+      <MaxTeklaVersion Name="2099.1"/>
+    </TeklaVersions>
+  </Product>
+
+  <SourcePathVariables>
+    <SourcePathVariable Id="TepOutputFolder" Value="%TEPDEFINITIONFILEFOLDER%\out" Comment="This provides the location where the package builder is to save the package."/>
+    <SourcePathVariable Id="Extension" Value="%TEPDEFINITIONFILEFOLDER%\extension"/>
+    <SourcePathVariable Id="Features" Value="%TEPDEFINITIONFILEFOLDER%\features"/>
+    <SourcePathVariable Id="ModelMacros" Value="%TEPDEFINITIONFILEFOLDER%\macros modeling"/>
+    <SourcePathVariable Id="DrawingMacros" Value="%TEPDEFINITIONFILEFOLDER%\macros drawings"/>
+    <SourcePathVariable Id="Attributes" Value="%TEPDEFINITIONFILEFOLDER%\attributes"/>
+    <SourcePathVariable Id="Bitmaps" Value="%TEPDEFINITIONFILEFOLDER%\bitmaps"/>
+  </SourcePathVariables>
+
+  <TargetPathVariables>
+		<PathVariable Id="ExtensionTarget" Value="%commonEnvFolder%\extensions\CalculusLink"/>
+    <PathVariable Id="FeaturesTarget" Value="%commonEnvFolder%\extensions\Features\CalculusLink\"/>
+		<PathVariable Id="ModelMacrosTarget" Value="%commonEnvFolder%\macros\modeling\"/>
+		<PathVariable Id="DrawingMacrosTarget" Value="%commonEnvFolder%\macros\drawings\"/>
+    <PathVariable Id="AttributesTarget" Value="%commonEnvFolder%\system\"/>
+		<PathVariable Id="BitmapsTarget" Value="%ENVDIR%\..\bitmaps\"/>
+	</TargetPathVariables>
+
+  <Component Id="TheExtensionComponent" Guid="a3ffbdc4-73ce-449d-906a-87d1a998f1ac">
+    <File Id="20e1ad30-ffd6-45fb-b52f-11677b33fa84" Source="%Extension%\CalculusModel.dll" Target="%ExtensionTarget%"/>
+    <File Id="de1c2eec-f697-4110-ad51-c576527e7905" Source="%Extension%\CalculusModel.pdb" Target="%ExtensionTarget%"/>
+    <File Id="479b82f7-7dc9-4019-b698-f5102e8490f7" Source="%Extension%\CalculusLink.exe" Target="%ExtensionTarget%"/>
+    <File Id="8350e12f-b0e8-434e-a5da-054196b8fb74" Source="%Extension%\CalculusLink.exe.config" Target="%ExtensionTarget%"/>
+    <File Id="b7dc71aa-aa71-4985-88d9-45cf3293d97d" Source="%Extension%\CalculusLink.pdb" Target="%ExtensionTarget%"/>
+    <File Id="84f1b4f5-f0a1-4b02-a438-ef67474a6d74" Source="%Extension%\CommunityToolkit.Mvvm.dll" Target="%ExtensionTarget%"/>
+    <File Id="4a929228-4acc-4fde-a698-d8fa7cc36d6e" Source="%Extension%\LibTessDotNet.dll" Target="%ExtensionTarget%"/>
+    <File Id="6237d6e5-babc-44ec-b942-edce5482fc7a" Source="%Extension%\Microsoft.Bcl.AsyncInterfaces.dll" Target="%ExtensionTarget%"/>
+    <File Id="c07a561c-41a8-41d1-975d-df256accca97" Source="%Extension%\Microsoft.Toolkit.Uwp.Notifications.dll" Target="%ExtensionTarget%"/>
+    <File Id="5a25be3c-e979-4c0f-ae1e-cb422846e7fb" Source="%Extension%\Serilog.dll" Target="%ExtensionTarget%"/>
+    <File Id="48efe12a-69d2-41d5-b59d-9c2d98714479" Source="%Extension%\Serilog.Sinks.File.dll" Target="%ExtensionTarget%"/>
+    <File Id="0c928431-2560-4e96-b7a4-66b0e56cbfad" Source="%Extension%\System.Buffers.dll" Target="%ExtensionTarget%"/>
+    <File Id="da282232-9f6b-4abe-9a17-c12c6d612457" Source="%Extension%\System.ComponentModel.Annotations.dll" Target="%ExtensionTarget%"/>
+    <File Id="7090c057-7c52-41ef-9757-3a03695ec42d" Source="%Extension%\System.Diagnostics.DiagnosticSource.dll" Target="%ExtensionTarget%"/>
+    <File Id="ad7e89f8-30c5-4367-9f4c-ef39d79ba257" Source="%Extension%\System.IO.Pipelines.dll" Target="%ExtensionTarget%"/>
+    <File Id="aecdd480-96eb-4b24-a202-e571fe80b412" Source="%Extension%\System.Memory.dll" Target="%ExtensionTarget%"/>
+    <File Id="56c00714-fa37-4ce1-8c3e-b07b0addffa7" Source="%Extension%\System.Numerics.Vectors.dll" Target="%ExtensionTarget%"/>
+    <File Id="bd0e9918-989a-48f5-a664-3f39cbd6c13a" Source="%Extension%\System.Runtime.CompilerServices.Unsafe.dll" Target="%ExtensionTarget%"/>
+    <File Id="95629e54-c0f0-4b6c-9575-bc63b24dd47d" Source="%Extension%\System.Text.Encodings.Web.dll" Target="%ExtensionTarget%"/>
+    <File Id="affedbe0-6d9b-4cfd-bf92-b83aa740dea0" Source="%Extension%\System.Text.Json.dll" Target="%ExtensionTarget%"/>
+    <File Id="cb75b82d-e2a6-4039-a8c8-e67d0340bd68" Source="%Extension%\System.Threading.Channels.dll" Target="%ExtensionTarget%"/>
+    <File Id="c131b096-e60d-4e28-977f-cdecc1d9b95a" Source="%Extension%\System.Threading.Tasks.Extensions.dll" Target="%ExtensionTarget%"/>
+    <File Id="92956601-7e85-40b9-89a5-f43bd91790a0" Source="%Extension%\System.ValueTuple.dll" Target="%ExtensionTarget%"/>
+    <File Id="05232f7e-896a-42d3-af70-997edb8df6b1" Source="%Extension%\TeklaAPIExtensions.Model.dll" Target="%ExtensionTarget%"/>
+    <File Id="d6c48bd8-8384-4b9d-a748-716d46dd8f30" Source="%Extension%\Wpf.Ui.Abstractions.dll" Target="%ExtensionTarget%"/>
+    <File Id="744a2255-a1e0-4d79-b22e-e1d39020c89f" Source="%Extension%\Wpf.Ui.dll" Target="%ExtensionTarget%"/>
+    <File Id="ffc0a605-a146-4b9e-964b-cb309b751f04" Source="%ModelMacros%\Calculus Link.cs" Target="%ModelMacrosTarget%"/>
+    <File Id="f87cdabd-8ce0-4fc6-8992-b0439685e9f4" Source="%ModelMacros%\Calculus Link.png" Target="%ModelMacrosTarget%"/>
+  </Component>
+
+  <Feature Id="TheExtensionFeature" Title="ExtensionFeature">
+    <ComponentRef ReferenceId="TheExtensionComponent" />
+  </Feature>
+
+</TEP>
