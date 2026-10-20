@@ -18,7 +18,7 @@ namespace CalculusLink.Bridge;
 public static class SyncPreview
 {
     public const string Scope = "tekla-sync:";
-    /// <summary>Past this many objects the colouring is skipped; the table still lists them.</summary>
+    /// <summary>Past this many changes the colouring is skipped; the table still lists them. Unchanged objects are not coloured and do not count.</summary>
     public const int MaxColoured = 2000;
 
     private static bool _teklaGhosted;
@@ -46,7 +46,7 @@ public static class SyncPreview
     public static async Task<bool> ShowAsync(CalculusBridgeClient client, SyncPlan plan)
     {
         await ClearAsync(client);
-        if (plan.Items.Count > MaxColoured) return false;
+        if (plan.Items.Count(i => i.State != SyncState.Unchanged) > MaxColoured) return false;
 
         // Calculus: the objects that exist there. Tekla -> Calculus: twins (Updated,
         // Conflict, Gone); Calculus -> Tekla: the selected objects too, New included.

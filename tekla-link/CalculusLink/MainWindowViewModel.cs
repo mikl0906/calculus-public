@@ -132,12 +132,23 @@ public partial class MainWindowViewModel : ObservableObject
         BridgeStatusText = newValue is null
             ? (Editors.Count == 0 ? "Calculus is running — no model is open" : "Pick the model to transfer with")
             : $"Connected to {newValue}";
-        // Every refresh hands over a fresh record of the same editor; a preview is
-        // about one model, and only a different model makes it stale.
-        if (oldValue?.Id != newValue?.Id)
+        // A refresh swaps the editor records (and the picker briefly writes null
+        // back while its list is replaced); it settles the preview itself once
+        // the new pick is known.
+        if (_refreshingEditors) return;
+        // A preview is about one model: only a different model makes it stale.
+        if (oldValue?.Id != newValue?.Id) DropPreviews();
+    }
+
+    /// <summary>True while Refresh replaces the editor list and the pick.</summary>
+    private bool _refreshingEditors;
+
+    /// <summary>Close both previews and take their colours out of the models.</summary>
+    private void DropPreviews()
+    {
+        foreach (var d in new[] { ToCalculus, ToTekla })
         {
-            ToCalculus.ClearPreview();
-            ToTekla.ClearPreview();
+            if (d.HasPreview) CancelPreviewCommand.Execute(d);
         }
     }
 
@@ -339,6 +350,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         if (status is null || !status.Running)
         {
+            DropPreviews();
             _bridgeClient = null;
             BridgeRunning = false;
             Editors = [];
@@ -353,6 +365,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (generation != _refreshGeneration) return;
         if (!authorized)
         {
+            DropPreviews();
             _bridgeClient = null;
             BridgeRunning = true;
             Editors = [];
@@ -365,14 +378,28 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        _bridgeClient = client;
-        BridgeRunning = true;
+        // The window refreshes on every activation — after each look at Tekla or
+        // Calculus — so a refresh that finds the same models must leave an open
+        // preview alone.
         var previous = SelectedEditor?.Id;
-        Editors = status.Editors;
-        // Keep the pick across reconnects; with one model open there is nothing
-        // to pick; with several the user chooses.
-        SelectedEditor = Editors.FirstOrDefault(e => e.Id == previous)
-            ?? (Editors.Count == 1 ? Editors[0] : null);
+        _refreshingEditors = true;
+        try
+        {
+            _bridgeClient = client;
+            client.Editor = previous;
+            BridgeRunning = true;
+            Editors = status.Editors;
+            // Keep the pick across reconnects; with one model open there is nothing
+            // to pick; with several the user chooses.
+            SelectedEditor = Editors.FirstOrDefault(e => e.Id == previous)
+                ?? (Editors.Count == 1 ? Editors[0] : null);
+        }
+        finally
+        {
+            _refreshingEditors = false;
+        }
+        if (_bridgeClient is not null) _bridgeClient.Editor = SelectedEditor?.Id;
+        if (SelectedEditor?.Id != previous) DropPreviews();
         if (SelectedEditor is null)
         {
             EditorConnected = false;
