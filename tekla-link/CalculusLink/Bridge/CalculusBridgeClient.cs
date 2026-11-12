@@ -126,16 +126,44 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
         var text = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {
-            var message = $"Hub returned {(int)response.StatusCode}";
-            try
-            {
-                if (JsonNode.Parse(text)?["error"] is { } error) message = error.ToJsonString();
-            }
-            catch { /* keep the status-code message */ }
-            throw new BridgeException(message);
+            throw new BridgeException(ErrorMessage((int)response.StatusCode, text));
         }
 
         return JsonNode.Parse(text) ?? new JsonObject();
+    }
+
+    /// <summary>
+    /// What to show for a failed call: Calculus's own words (the error's
+    /// <c>message</c>), not the JSON around them.
+    /// </summary>
+    internal static string ErrorMessage(int status, string body)
+    {
+        // Calculus up to 0.70 read at most 2 MB per call — a few thousand
+        // objects — and refused the rest unread.
+        if (status == 413)
+        {
+            return "Too many changes for one transfer Transfer a smaller selection at a time.";
+        }
+
+        try
+        {
+            if (JsonNode.Parse(body)?["error"] is { } error)
+            {
+                // { code, message } — or, from an older Calculus, a bare string.
+                if (error is JsonObject && error["message"] is JsonValue message
+                    && message.TryGetValue<string>(out var words) && words.Length > 0)
+                {
+                    return words;
+                }
+                if (error is JsonValue value && value.TryGetValue<string>(out var bare) && bare.Length > 0)
+                {
+                    return bare;
+                }
+                return error.ToJsonString();
+            }
+        }
+        catch { /* not JSON: the status says what we know */ }
+        return $"Calculus answered {status}";
     }
 
     // --- Typed helpers -------------------------------------------------------
