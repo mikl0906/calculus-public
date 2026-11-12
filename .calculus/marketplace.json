@@ -1,0 +1,60 @@
+{
+  "name": "Calculus public collection",
+  "owner": {
+    "name": "Calculus"
+  },
+  "entries": [
+    {
+      "kind": "package",
+      "id": "calculus.selection-tools",
+      "name": "Selection tools",
+      "version": "1.0.0",
+      "description": "Select beams longer than a length, or every part with a given profile — the selection can then be isolated, edited or exported.",
+      "tags": [
+        "selection",
+        "filter"
+      ],
+      "authors": [
+        "Calculus"
+      ],
+      "form": "module",
+      "members": [
+        {
+          "kind": "command",
+          "id": "select-long-beams",
+          "name": "Select beams longer than…"
+        },
+        {
+          "kind": "command",
+          "id": "select-by-profile",
+          "name": "Select by profile…"
+        }
+      ],
+      "source": "packages/calculus.selection-tools.package.ts"
+    },
+    {
+      "kind": "package",
+      "id": "calculus.timber-sections",
+      "name": "Glulam sections",
+      "version": "1.0.0",
+      "description": "Rectangular glued-laminated timber sections in common widths and depths (90–215 mm wide). A data package: profile names only, no code.",
+      "tags": [
+        "timber",
+        "glulam",
+        "profiles"
+      ],
+      "authors": [
+        "Calculus"
+      ],
+      "form": "data",
+      "members": [
+        {
+          "kind": "profiles",
+          "id": "glulam",
+          "name": "Glulam (GL)"
+        }
+      ],
+      "source": "packages/calculus.timber-sections.package.json"
+    }
+  ]
+}

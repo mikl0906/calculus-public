@@ -1,0 +1,20 @@
+# Validates every package in packages/ and checks the committed catalog
+# (.calculus/marketplace.json) matches the sources in this commit.
+# Stale catalog? Run `npm run manifest` and commit the result.
+name: Marketplace
+on:
+  push:
+    branches: [main]
+    paths: ["packages/**", ".calculus/**", "scripts/marketplace.mjs", "package.json"]
+  pull_request:
+    paths: ["packages/**", ".calculus/**", "scripts/marketplace.mjs", "package.json"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm run check

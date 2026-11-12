@@ -1,0 +1,26 @@
+{
+  "id": "calculus.timber-sections",
+  "version": "1.0.0",
+  "name": "Glulam sections",
+  "description": "Rectangular glued-laminated timber sections in common widths and depths (90–215 mm wide). A data package: profile names only, no code.",
+  "tags": ["timber", "glulam", "profiles"],
+  "authors": ["Calculus"],
+  "extensions": [
+    {
+      "kind": "profiles",
+      "id": "glulam",
+      "name": "Glulam (GL)",
+      "sections": [
+        { "type": "rectangle", "name": "GL 90x225", "w": 90, "h": 225 },
+        { "type": "rectangle", "name": "GL 90x270", "w": 90, "h": 270 },
+        { "type": "rectangle", "name": "GL 90x315", "w": 90, "h": 315 },
+        { "type": "rectangle", "name": "GL 115x360", "w": 115, "h": 360 },
+        { "type": "rectangle", "name": "GL 115x405", "w": 115, "h": 405 },
+        { "type": "rectangle", "name": "GL 140x450", "w": 140, "h": 450 },
+        { "type": "rectangle", "name": "GL 165x540", "w": 165, "h": 540 },
+        { "type": "rectangle", "name": "GL 190x630", "w": 190, "h": 630 },
+        { "type": "rectangle", "name": "GL 215x720", "w": 215, "h": 720 }
+      ]
+    }
+  ]
+}
