@@ -55,44 +55,68 @@ public static class BridgeTransferService
         var existing = await client.GetAllObjectsAsync();
         var existingById = existing.ToDictionary(e => e.GetId());
         var existingByTeklaId = new Dictionary<string, string>();
+        var teklaIdOfExisting = new Dictionary<string, string>();
         foreach (var e in existing)
         {
             var tid = e.GetTeklaId();
-            if (tid is not null) existingByTeklaId[tid] = e.GetId();
+            if (tid is null) continue;
+            existingByTeklaId[tid] = e.GetId();
+            teklaIdOfExisting[e.GetId()] = tid;
         }
 
         // Pass 1: resolve each object's Calculus id to its twin's id when one exists.
         // A Calculus id may be claimed by ONE incoming object: Tekla objects copied
         // inside Tekla carry their original's CALCULUS_ID UDA, and two objects
-        // with one id would make the add fail ("already exists"). The first
-        // keeps the id, the rest stay new and get the UDA rewritten on apply.
+        // with one id would make the add fail ("already exists").
         var remap = new Dictionary<string, string>();
         var claimed = new HashSet<string>();
-        foreach (var o in model.Objects)
+        // By position in model.Objects (never keyed on the object: its id changes).
+        var resolved = new string?[model.Objects.Count];
+
+        // First the links Calculus itself records: a twin whose tekla_id is this
+        // object's GUID is this object's twin, whatever any UDA says. Deciding
+        // by selection order instead gave the twin to whichever copy came first,
+        // re-created the ORIGINAL as a new object and repointed its cuts at it.
+        for (var i = 0; i < model.Objects.Count; i++)
         {
-            var teklaId = o.GetTeklaId();
+            var teklaId = model.Objects[i].GetTeklaId();
             if (teklaId is null) continue;
+            if (existingByTeklaId.TryGetValue(teklaId, out var byTwin) && claimed.Add(byTwin))
+            {
+                resolved[i] = byTwin;
+            }
+        }
 
-            string? desired = null;
-            if (teklaByGuid.TryGetValue(teklaId, out var src))
-            {
-                desired = TeklaUda.GetCalculusId(src);
-            }
-            if (desired is null && existingByTeklaId.TryGetValue(teklaId, out var byTwin))
-            {
-                desired = byTwin;
-            }
-            if (desired is not null && !claimed.Add(desired))
-            {
-                Log.Warning("Tekla object {Guid} carries CALCULUS_ID {Id} already claimed by another selected object (a copy?); it will be added as a new object", teklaId, desired);
-                desired = null;
-            }
+        // Then the UDA, for objects Calculus has no link to: honoured when the id
+        // is free — not taken above, and not the twin of another Tekla object
+        // that still exists (then this one is its copy, selected or not). The
+        // rest stay new and get the UDA rewritten on apply.
+        for (var i = 0; i < model.Objects.Count; i++)
+        {
+            var teklaId = model.Objects[i].GetTeklaId();
+            if (teklaId is null || resolved[i] is not null) continue;
+            if (!teklaByGuid.TryGetValue(teklaId, out var src)) continue;
+            var desired = TeklaUda.GetCalculusId(src);
+            if (desired is null) continue;
 
-            if (desired is not null && desired != o.GetId())
+            var copyOf = teklaIdOfExisting.TryGetValue(desired, out var owner)
+                && owner != teklaId
+                && teklaModel.SelectModelObject(new Identifier(owner)) is not null;
+            if (copyOf || !claimed.Add(desired))
             {
-                remap[o.GetId()] = desired;
-                o.SetId(desired);
+                Log.Warning("Tekla object {Guid} carries CALCULUS_ID {Id} that belongs to another Tekla object (a copy?); it will be added as a new object", teklaId, desired);
+                continue;
             }
+            resolved[i] = desired;
+        }
+
+        for (var i = 0; i < model.Objects.Count; i++)
+        {
+            var o = model.Objects[i];
+            var id = resolved[i];
+            if (id is null || id == o.GetId()) continue;
+            remap[o.GetId()] = id;
+            o.SetId(id);
         }
 
         // Pass 2: repoint child references at any re-ided parents, then classify.
@@ -199,8 +223,12 @@ public static class BridgeTransferService
             }
         }
 
-        await client.UpdateObjectsAsync(updates);
+        // New objects first: an updated object may refer to one of them (a cut
+        // moved onto a part that is new in this transfer), and Calculus refuses
+        // a reference to an object it does not have yet. A new object can only
+        // refer to objects that exist already or arrive in the same batch.
         await client.AddObjectsAsync(adds);
+        await client.UpdateObjectsAsync(updates);
         await client.PatchUserdataAsync(baselinePatches);
         await client.RemoveObjectsAsync(removes);
 
