@@ -7,12 +7,14 @@ using CalculusModel;
 
 namespace CalculusLink.Bridge;
 
-/// <summary>Snapshot returned by the bridge's <c>GET /status</c>: whether it
-/// serves, where, and the editors that hold a model (one per desktop window
-/// or paired browser tab).</summary>
+/// <summary>Snapshot returned by the bridge's <c>GET /status</c>: the app's
+/// version, the port, and the editors that hold a model (one per desktop
+/// window or paired browser tab). Any successful answer means the bridge is
+/// up — <see cref="CalculusBridgeClient.GetStatusAsync"/> returns null
+/// otherwise.</summary>
 public class BridgeStatus
 {
-    public bool Running { get; set; }
+    public string? Version { get; set; }
     public int Port { get; set; }
     public List<BridgeEditor> Editors { get; set; } = [];
 }

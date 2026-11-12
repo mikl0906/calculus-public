@@ -343,8 +343,10 @@ public class Line : ModelObject
 // Calculus Model
 // -----------------------------------------------------------------------------
 
+/// <summary>A .calculus document (the structural objects this mirror knows).
+/// It has no name: the file name IS the name (Nov 2026); an old file's
+/// <c>name</c> key is ignored on read.</summary>
 public class Model
 {
-    public string Name { get; set; } = string.Empty;
     public List<ModelObject> Objects { get; set; } = [];
 }

@@ -280,7 +280,6 @@ public partial class MainWindowViewModel : ObservableObject
 
                     // Build the Calculus model from the selected Tekla objects
                     var calculusModel = CalculusModelBuilder.FromTeklaObjects(selected);
-                    calculusModel.Name = saveFileDialog.SafeFileName.Replace(".calculus", "");
 
                     // Serialize the Calculus model to JSON and save it to the selected file
                     var json = CalculusModelSerializer.Serialize(calculusModel);
@@ -348,7 +347,7 @@ public partial class MainWindowViewModel : ObservableObject
         var status = await client.GetStatusAsync();
         if (generation != _refreshGeneration) return;
 
-        if (status is null || !status.Running)
+        if (status is null)
         {
             DropPreviews();
             _bridgeClient = null;
