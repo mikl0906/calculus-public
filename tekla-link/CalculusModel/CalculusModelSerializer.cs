@@ -41,7 +41,7 @@ public static class CalculusModelSerializer
 
     /// <summary>
     /// Deserialize a JSON array of objects (as returned by the bridge's
-    /// <c>getAllObjects</c>/<c>getSelection</c>). Unknown object types
+    /// <c>calculus_list_objects</c>/<c>calculus_get_selection</c>). Unknown object types
     /// deserialize to null and are dropped.
     /// </summary>
     public static List<ModelObject> DeserializeObjects(string json)

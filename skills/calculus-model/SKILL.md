@@ -19,7 +19,7 @@ curl -s http://127.0.0.1:7421/
 The app serves a guide that matches its version: endpoints, how to connect,
 the conventions, the analysis workflow and examples. Read it before working
 — it is the reference; this skill only gets you there. `GET /api/tools` lists
-every operation with its input schema; `describe { type }` gives an object
+every operation with its input schema; `calculus_describe { type }` gives an object
 type's schema.
 
 - **Nothing answers on 7421:** the Calculus desktop app is not running. Ask
@@ -35,13 +35,13 @@ type's schema.
 
 ## The rules that matter most
 
-- Start with `listEditors`; with several models open, pass `editor` on every
-  call (or `selectEditor` once).
+- Start with `calculus_list_editors`; with several models open, pass `editor` on every
+  call (or `calculus_select_editor` once).
 - Units are **mm**, **radians**, **kN**; **Z is up**. A 6 m beam is `6000`.
-- Don't pass `id` when creating: `addObjects` returns the objects with their
+- Don't pass `id` when creating: `calculus_add_objects` returns the objects with their
   ids. Create referenced objects first (nodes → members → supports → load
   cases → loads), using the returned ids.
-- Use real catalog names for profiles and materials (`listProfiles`,
-  `listMaterials`); `describe` a type before creating it.
-- Never discard unsaved changes (`closeEditor { discard: true }`) without the
+- Use real catalog names for profiles and materials (`calculus_list_profiles`,
+  `calculus_list_materials`); `calculus_describe` a type before creating it.
+- Never discard unsaved changes (`calculus_close_document { discard: true }`) without the
   user's say-so.

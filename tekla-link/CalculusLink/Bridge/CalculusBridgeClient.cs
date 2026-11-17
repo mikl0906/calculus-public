@@ -168,22 +168,22 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
 
     // --- Typed helpers -------------------------------------------------------
 
-    /// <summary>addObjects — ids supplied on the objects are preserved by the editor.</summary>
+    /// <summary>calculus_add_objects — ids supplied on the objects are preserved by the editor.</summary>
     public async Task AddObjectsAsync(IReadOnlyList<ModelObject> objects)
     {
         if (objects.Count == 0) return;
-        await CallAsync("addObjects", ObjectsPayload(objects));
+        await CallAsync("calculus_add_objects", ObjectsPayload(objects));
     }
 
-    /// <summary>updateObjects — replace existing objects matched by id.</summary>
+    /// <summary>calculus_replace_objects — replace existing objects matched by id.</summary>
     public async Task UpdateObjectsAsync(IReadOnlyList<ModelObject> objects)
     {
         if (objects.Count == 0) return;
-        await CallAsync("updateObjects", ObjectsPayload(objects));
+        await CallAsync("calculus_replace_objects", ObjectsPayload(objects));
     }
 
     /// <summary>
-    /// setColorRules — replace the colour-by-rule entries whose name starts with
+    /// calculus_set_color_rules — replace the colour-by-rule entries whose name starts with
     /// <paramref name="scope"/> (placed first, so they win); an empty list clears
     /// the scope. The user's own rules stay.
     /// </summary>
@@ -194,47 +194,47 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
         {
             array.Add(new JsonObject { ["name"] = name, ["query"] = query, ["color"] = color, ["active"] = true });
         }
-        await CallAsync("setColorRules", new JsonObject { ["rules"] = array, ["scope"] = scope });
+        await CallAsync("calculus_set_color_rules", new JsonObject { ["rules"] = array, ["scope"] = scope });
     }
 
-    /// <summary>setStructuralRepresentation — returns the representation it replaced.</summary>
+    /// <summary>calculus_set_structural_representation — returns the representation it replaced.</summary>
     public async Task<string?> SetStructuralRepresentationAsync(string representation)
     {
-        var result = await CallAsync("setStructuralRepresentation", new JsonObject { ["representation"] = representation });
+        var result = await CallAsync("calculus_set_structural_representation", new JsonObject { ["representation"] = representation });
         return result["previous"]?.GetValue<string>();
     }
 
-    /// <summary>removeObjects — the editor drops dependents that cannot exist without them.</summary>
+    /// <summary>calculus_remove_objects — the editor drops dependents that cannot exist without them.</summary>
     public async Task RemoveObjectsAsync(IReadOnlyList<string> ids)
     {
         if (ids.Count == 0) return;
         var idArray = new JsonArray();
         foreach (var id in ids) idArray.Add(id);
-        await CallAsync("removeObjects", new JsonObject { ["ids"] = idArray });
+        await CallAsync("calculus_remove_objects", new JsonObject { ["ids"] = idArray });
     }
 
     public async Task<List<ModelObject>> GetAllObjectsAsync(string? type = null)
     {
         var payload = new JsonObject();
         if (type is not null) payload["type"] = type;
-        var result = await CallAsync("getAllObjects", payload);
+        var result = await CallAsync("calculus_list_objects", payload);
         return ObjectsFromResult(result);
     }
 
     /// <summary>
-    /// getSelection with full objects, plus the ids of selected objects this side
+    /// calculus_get_selection with full objects, plus the ids of selected objects this side
     /// does not mirror (component instances, analytical objects): those drop out
     /// of <c>Objects</c> but stay in <c>Ids</c>.
     /// </summary>
     public async Task<(List<string> Ids, List<ModelObject> Objects)> GetSelectionAsync()
     {
-        var result = await CallAsync("getSelection", new JsonObject { ["full"] = true });
+        var result = await CallAsync("calculus_get_selection", new JsonObject { ["full"] = true });
         var ids = result["ids"]?.AsArray().Select(n => n!.GetValue<string>()).ToList() ?? [];
         return (ids, ObjectsFromResult(result));
     }
 
     /// <summary>
-    /// getComponentChildren — the children of the given component instances, and
+    /// calculus_list_component_children — the children of the given component instances, and
     /// the ids of children that are themselves instances (not mirrored here).
     /// </summary>
     public async Task<(List<ModelObject> Children, List<string> NestedInstanceIds)> GetComponentChildrenAsync(IReadOnlyList<string> ids)
@@ -242,7 +242,7 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
         if (ids.Count == 0) return ([], []);
         var idArray = new JsonArray();
         foreach (var id in ids) idArray.Add(id);
-        var result = await CallAsync("getComponentChildren", new JsonObject { ["ids"] = idArray });
+        var result = await CallAsync("calculus_list_component_children", new JsonObject { ["ids"] = idArray });
         var children = new JsonArray();
         var nested = new List<string>();
         foreach (var instance in result["instances"]?.AsArray() ?? [])
@@ -258,21 +258,21 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
         return (CalculusModelSerializer.DeserializeObjects(children.ToJsonString()), nested);
     }
 
-    /// <summary>setSelection — replace the editor selection with exactly these ids.</summary>
+    /// <summary>calculus_set_selection — replace the editor selection with exactly these ids.</summary>
     public async Task SetSelectionAsync(IEnumerable<string> ids)
     {
         var idArray = new JsonArray();
         foreach (var id in ids) idArray.Add(id);
-        await CallAsync("setSelection", new JsonObject { ["ids"] = idArray });
+        await CallAsync("calculus_set_selection", new JsonObject { ["ids"] = idArray });
     }
 
-    /// <summary>getRelatedObjects — pull in objects the given ids reference (e.g. a bolt's parts).</summary>
+    /// <summary>calculus_list_related_objects — pull in objects the given ids reference (e.g. a bolt's parts).</summary>
     public async Task<List<ModelObject>> GetReferencedObjectsAsync(IEnumerable<string> ids)
     {
         var idArray = new JsonArray();
         foreach (var id in ids) idArray.Add(id);
         if (idArray.Count == 0) return [];
-        var result = await CallAsync("getRelatedObjects", new JsonObject
+        var result = await CallAsync("calculus_list_related_objects", new JsonObject
         {
             ["ids"] = idArray,
             ["direction"] = "references",
@@ -281,7 +281,7 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
     }
 
     /// <summary>
-    /// patchObjects — set the full <c>userdata</c> dict on an object. The hub merges
+    /// calculus_update_objects (a partial update) — set the full <c>userdata</c> dict on an object. The hub merges
     /// <c>properties</c> shallowly, so the whole userdata map must be sent.
     /// </summary>
     public async Task PatchUserdataAsync(IEnumerable<(string id, Dictionary<string, string> userdata)> patches)
@@ -298,7 +298,7 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
             });
         }
         if (patchArray.Count == 0) return;
-        await CallAsync("patchObjects", new JsonObject { ["patches"] = patchArray });
+        await CallAsync("calculus_update_objects", new JsonObject { ["patches"] = patchArray });
     }
 
     private static JsonObject ObjectsPayload(IReadOnlyList<ModelObject> objects)
