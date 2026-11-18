@@ -8,6 +8,33 @@ namespace CalculusLink;
 
 public static class CalculusModelBuilder
 {
+    /// <summary>
+    /// The GUID of the part a rebar sits in. Tekla can hand back the father
+    /// with only its numeric id loaded (an empty GUID): select it, else ask
+    /// the model. <see cref="Guid.Empty"/> when it still cannot say.
+    /// </summary>
+    static Guid HostGuidOf(TSM.Reinforcement rebar)
+    {
+        var father = rebar.Father;
+        if (father is null) return Guid.Empty;
+        var guid = father.Identifier.GUID;
+        if (guid != Guid.Empty) return guid;
+        try
+        {
+            if (father.Select() && father.Identifier.GUID != Guid.Empty) return father.Identifier.GUID;
+            if (father.Identifier.ID > 0)
+            {
+                var resolved = new TSM.Model().GetGUIDByIdentifier(father.Identifier);
+                if (!string.IsNullOrEmpty(resolved) && Guid.TryParse(resolved, out var g)) return g;
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Warning(e, "Could not resolve the host part of rebar {RebarGuid}", rebar.Identifier.GUID);
+        }
+        return Guid.Empty;
+    }
+
     public static Model FromTeklaObjects(List<TSM.ModelObject> teklaObjects)
     {
         var model = new Model
@@ -92,7 +119,14 @@ public static class CalculusModelBuilder
                     Log.Warning("Skipping unsupported Reinforcement type: {TypeName}", teklaRebar.GetType().Name);
                     continue;
                 }
-                Guid teklaFatherId = teklaRebar.Father.Identifier.GUID;
+                Guid teklaFatherId = HostGuidOf(teklaRebar);
+                if (teklaFatherId == Guid.Empty)
+                {
+                    // Sent with an empty host, Calculus refused the whole
+                    // transfer (Nov 2026): leave this one out, say which.
+                    Log.Warning("Skipping rebar {RebarGuid}: Tekla gives no host part for it", teklaRebar.Identifier.GUID);
+                    continue;
+                }
                 string fatherId = teklaToCalculusIdMap.TryGetValue(teklaFatherId, out var v) ? v : teklaFatherId.ToString();
 
                 var rebar = new Rebar();

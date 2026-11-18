@@ -3,6 +3,8 @@ using System.Numerics;
 
 using CalculusModel;
 
+using Serilog;
+
 using CalculusLink.Extensions;
 
 using TSG = Tekla.Structures.Geometry3d;
@@ -459,20 +461,48 @@ public static class CalculusTeklaMapper
         }
     }
 
-    public static void ToCalculusPlate(TSM.ContourPlate teklaPlate, Plate plate)
+    /// <summary>Two contour points closer than this (mm) are one corner.</summary>
+    const double SamePointTolerance = 0.01;
+
+    /// <summary>
+    /// A contour plate's outline for Calculus: Tekla's points in full double
+    /// precision (a float cut a point far from the origin by up to a
+    /// millimetre), with a point that repeats the one before it — or a last
+    /// point that repeats the first — left out. Tekla keeps such points;
+    /// Calculus reads them as a zero-length edge and refuses the plate.
+    /// </summary>
+    static Vec3WithChamfer[] CalculusContour(TSM.ContourPlate teklaPlate)
     {
-        var polygon = teklaPlate.Contour.ContourPoints
-            .OfType<TSM.ContourPoint>()
-            .Select(p => new Vec3WithChamfer()
+        var points = new List<Vec3WithChamfer>();
+        foreach (var p in teklaPlate.Contour.ContourPoints.OfType<TSM.ContourPoint>())
+        {
+            if (points.Count > 0 && Near(points[points.Count - 1], p)) continue;
+            points.Add(new Vec3WithChamfer
             {
                 X = p.X,
                 Y = p.Y,
                 Z = p.Z,
                 Chamfer = ToCalculusChamfer(p.Chamfer)
-            })
-            .ToArray();
+            });
+        }
+        if (points.Count > 1 && Near(points[points.Count - 1], points[0])) points.RemoveAt(points.Count - 1);
+        var dropped = teklaPlate.Contour.ContourPoints.Count - points.Count;
+        if (dropped > 0)
+        {
+            Log.Information("Plate {Guid}: {Count} repeated contour point(s) left out", teklaPlate.Identifier.GUID, dropped);
+        }
+        return [.. points];
+    }
 
-        plate.Polygon = polygon;
+    static bool Near(Vec3WithChamfer a, TSM.ContourPoint b) =>
+        Math.Abs(a.X - b.X) < SamePointTolerance && Math.Abs(a.Y - b.Y) < SamePointTolerance && Math.Abs(a.Z - b.Z) < SamePointTolerance;
+
+    static bool Near(Vec3WithChamfer a, Vec3WithChamfer b) =>
+        Math.Abs(a.X - b.X) < SamePointTolerance && Math.Abs(a.Y - b.Y) < SamePointTolerance && Math.Abs(a.Z - b.Z) < SamePointTolerance;
+
+    public static void ToCalculusPlate(TSM.ContourPlate teklaPlate, Plate plate)
+    {
+        plate.Polygon = CalculusContour(teklaPlate);
         plate.Name = teklaPlate.Name;
         plate.Profile = teklaPlate.Profile.ProfileString;
         plate.Material = teklaPlate.Material.MaterialString;
@@ -585,15 +615,7 @@ public static class CalculusTeklaMapper
     {
         var plate = new CutPlate
         {
-            Polygon = [.. teklaPlate.Contour.ContourPoints
-                .OfType<TSM.ContourPoint>()
-                .Select(p => new Vec3WithChamfer()
-                {
-                    X = (float)p.X,
-                    Y = (float)p.Y,
-                    Z = (float)p.Z,
-                    Chamfer = ToCalculusChamfer(p.Chamfer)
-                })],
+            Polygon = CalculusContour(teklaPlate),
             Name = teklaPlate.Name,
             Profile = teklaPlate.Profile.ProfileString,
             Material = teklaPlate.Material.MaterialString,

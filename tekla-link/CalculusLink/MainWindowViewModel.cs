@@ -602,7 +602,9 @@ public partial class MainWindowViewModel : ObservableObject
         }
         d.ClearPreview();
         var message = $"{(d.ToCalculus ? "To Calculus" : "To Tekla")}: {outcome.Result}";
-        _snackbar.ShowSuccessMessage(message);
+        // Objects left out are worth a look: their Tekla GUIDs are in the log.
+        if (outcome.Result.Refused.Count > 0) _snackbar.ShowWarningMessage(message);
+        else _snackbar.ShowSuccessMessage(message);
         TSM.Operations.Operation.DisplayPrompt($"Calculus Link: {message}");
     }
 

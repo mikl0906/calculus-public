@@ -227,8 +227,30 @@ public static class BridgeTransferService
         // moved onto a part that is new in this transfer), and Calculus refuses
         // a reference to an object it does not have yet. A new object can only
         // refer to objects that exist already or arrive in the same batch.
-        await client.AddObjectsAsync(adds);
-        await client.UpdateObjectsAsync(updates);
+        // Calculus takes a batch whole or not at all. One object it cannot
+        // build (a contour plate whose outline crosses itself, a rebar whose
+        // host did not arrive) must not stop the other thousands: drop what it
+        // names and send the rest again. A dropped part takes its cuts, bolts
+        // and rebars with it in the next round (they refer to it).
+        var refused = new List<(ModelObject Object, RefusedObject Why)>();
+        refused.AddRange(await SendDroppingRefusedAsync(adds, client.AddObjectsAsync));
+        refused.AddRange(await SendDroppingRefusedAsync(updates, client.UpdateObjectsAsync));
+        if (refused.Count > 0)
+        {
+            var dropped = new HashSet<ModelObject>(refused.Select(r => r.Object));
+            foreach (var item in written.Where(i => i.Incoming is not null && dropped.Contains(i.Incoming)).ToList())
+            {
+                written.Remove(item);
+                if (item.State == SyncState.New) result.Added--;
+                else result.Updated--;
+            }
+            foreach (var (o, why) in refused)
+            {
+                var teklaId = o.GetTeklaId() ?? "no Tekla id";
+                Log.Warning("Calculus refused {Type} {TeklaId} (Calculus id {Id}): {Reason}", why.Type, teklaId, why.Id, why.Reason);
+                result.Refused.Add($"{why.Type} {teklaId}: {why.Reason}");
+            }
+        }
         await client.PatchUserdataAsync(baselinePatches);
         await client.RemoveObjectsAsync(removes);
 
@@ -254,6 +276,41 @@ public static class BridgeTransferService
 
         Log.Information("Direct transfer to Calculus: {Result}", result);
         return result;
+    }
+
+    /// <summary>Rounds of dropping refused objects before giving up: each round
+    /// can only expose objects that depended on the last round's.</summary>
+    const int MaxRefusalRounds = 5;
+
+    /// <summary>
+    /// Send <paramref name="batch"/>; when Calculus refuses objects in it
+    /// (<c>invalidObjects</c> naming them), remove those from the batch and
+    /// send again. Returns what was dropped. Rethrows any other failure, and a
+    /// refusal that names nothing in the batch (nothing to drop).
+    /// </summary>
+    static async Task<List<(ModelObject Object, RefusedObject Why)>> SendDroppingRefusedAsync(
+        List<ModelObject> batch,
+        Func<IReadOnlyList<ModelObject>, Task> send)
+    {
+        var dropped = new List<(ModelObject, RefusedObject)>();
+        for (var round = 0; ; round++)
+        {
+            try
+            {
+                await send(batch);
+                return dropped;
+            }
+            catch (BridgeException e) when (e.Code == "invalidObjects" && e.Refused.Count > 0 && round < MaxRefusalRounds)
+            {
+                var why = new Dictionary<string, RefusedObject>();
+                foreach (var r in e.Refused) why[r.Id] = r;
+                var hit = batch.Where(o => why.ContainsKey(o.GetId())).ToList();
+                if (hit.Count == 0) throw;
+                foreach (var o in hit) dropped.Add((o, why[o.GetId()]));
+                batch.RemoveAll(o => why.ContainsKey(o.GetId()));
+                Log.Information("Calculus refused {Count} objects; sending the other {Rest} again", hit.Count, batch.Count);
+            }
+        }
     }
 
     // --- Calculus -> Tekla ---------------------------------------------------

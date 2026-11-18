@@ -34,7 +34,29 @@ public class BridgeEditor
 }
 
 /// <summary>Raised when the bridge returns a domain (operation) error.</summary>
-public class BridgeException(string message) : Exception(message);
+public class BridgeException(
+    string message,
+    string? code = null,
+    IReadOnlyList<RefusedObject>? refused = null) : Exception(message)
+{
+    /// <summary>Calculus's machine-readable reason (<c>invalidObjects</c>, <c>unknownObject</c>, …), when it gave one.</summary>
+    public string? Code { get; } = code;
+
+    /// <summary>
+    /// For <c>invalidObjects</c>: each object Calculus refused, with why. A
+    /// batch is all or nothing, so the caller drops these and sends the rest
+    /// again (empty from a Calculus that does not list them).
+    /// </summary>
+    public IReadOnlyList<RefusedObject> Refused { get; } = refused ?? [];
+}
+
+/// <summary>One object Calculus refused (an <c>invalidObjects</c> issue).</summary>
+public class RefusedObject(string id, string type, string reason)
+{
+    public string Id { get; } = id;
+    public string Type { get; } = type;
+    public string Reason { get; } = reason;
+}
 
 /// <summary>
 /// A thin HTTP client for the Calculus bridge — the server the Calculus desktop
@@ -126,10 +148,41 @@ public class CalculusBridgeClient(int port = 7421, string? token = null)
         var text = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {
-            throw new BridgeException(ErrorMessage((int)response.StatusCode, text));
+            throw ErrorOf((int)response.StatusCode, text);
         }
 
         return JsonNode.Parse(text) ?? new JsonObject();
+    }
+
+    /// <summary>
+    /// A failed call as an exception: Calculus's words, its <c>code</c>, and
+    /// for <c>invalidObjects</c> the refused objects (<c>issues</c>:
+    /// <c>{ id, type, reason }</c> each).
+    /// </summary>
+    internal static BridgeException ErrorOf(int status, string body)
+    {
+        var message = ErrorMessage(status, body);
+        string? code = null;
+        var refused = new List<RefusedObject>();
+        try
+        {
+            if (JsonNode.Parse(body)?["error"] is JsonObject error)
+            {
+                if (error["code"] is JsonValue c && c.TryGetValue<string>(out var s)) code = s;
+                if (code == "invalidObjects" && error["issues"] is JsonArray issues)
+                {
+                    foreach (var issue in issues.OfType<JsonObject>())
+                    {
+                        if (issue["id"] is not JsonValue idValue || !idValue.TryGetValue<string>(out var id)) continue;
+                        var type = issue["type"] is JsonValue t && t.TryGetValue<string>(out var ts) ? ts : "";
+                        var reason = issue["reason"] is JsonValue r && r.TryGetValue<string>(out var rs) ? rs : "";
+                        refused.Add(new RefusedObject(id, type, reason));
+                    }
+                }
+            }
+        }
+        catch { /* not JSON: the message is all there is */ }
+        return new BridgeException(message, code, refused);
     }
 
     /// <summary>

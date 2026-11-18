@@ -135,6 +135,12 @@ public class SyncResult
     public int Removed { get; set; }
     /// <summary>Changes left out of the transfer (unchecked in the preview, conflicts not overwritten, gone twins kept).</summary>
     public int Excluded { get; set; }
+    /// <summary>
+    /// Objects the other model refused (Calculus: an outline that crosses
+    /// itself, a reference to a part that did not arrive, …): left out so the
+    /// rest could go — "type Tekla-GUID: reason" each, also in the log.
+    /// </summary>
+    public List<string> Refused { get; } = [];
 
     public override string ToString()
     {
@@ -145,6 +151,7 @@ public class SyncResult
         if (Skipped > 0) parts.Add($"{Skipped} already up to date");
         if (Conflicts > 0) parts.Add($"{Conflicts} left in conflict");
         if (Excluded > 0) parts.Add($"{Excluded} left out");
+        if (Refused.Count > 0) parts.Add($"{Refused.Count} refused by Calculus (see the log)");
         return parts.Count == 0 ? "Nothing to do — everything is up to date" : string.Join(", ", parts);
     }
 }
