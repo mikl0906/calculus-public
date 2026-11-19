@@ -72,6 +72,22 @@ lists what differs. Tekla's GUI packager, `TeklaExtensionPackage.Builder.exe`
 in the same folder, opens the same manifest. Packages are published as
 release assets on this repository, never committed (`Tsep/out/` is ignored).
 
+## Releasing
+
+A plugin release is a GitHub release on this repository with the `.tsep` as
+its asset. This repository also carries the desktop app's releases
+(`desktop-v…`), so the tag says which product it is:
+
+- **1.4 and later:** tag `tekla-link-v<major>.<minor>` (e.g.
+  `tekla-link-v1.4`) and create the release **not** as Latest
+  (`gh release create … --latest=false`).
+- **1.3** was the last plain `v1.3` tag. It is the Latest release and must
+  stay Latest: installed 1.0–1.2 plugins read only the repository's Latest
+  release and parse its tag as `v<version>`, so a `tekla-link-v…` release
+  as Latest would silently end their update notices. Latest = `v1.3` gives
+  them 1.3, and from 1.3 on the updater (`CalculusTeklaLink/Updater.cs`)
+  lists the releases and takes the newest `.tsep` under either tag form.
+
 ## Licence
 
 [MIT](LICENSE). The licence covers this code only. The Tekla Open API it

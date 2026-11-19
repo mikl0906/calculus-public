@@ -39,7 +39,8 @@ public static class Updater
 {
     // The public repo also carries desktop app releases (tags "desktop-v…"),
     // so "the latest release" may not be ours: list recent releases and take
-    // the newest plugin one (a plain "v1.2" tag with a .tsep asset).
+    // the newest plugin one with a .tsep asset. Plugin tags are
+    // "tekla-link-v1.4" from 1.4 on; 1.0–1.3 used a plain "v1.3".
     const string Url = "https://api.github.com/repos/mikl0906/calculus-public/releases?per_page=50";
 
     public static async Task CheckForUpdates(bool showSuccessToast = false)
@@ -60,7 +61,7 @@ public static class Updater
 
                 new ToastContentBuilder()
                     .AddText("New version available")
-                    .AddText($"Version {release.TagName} is ready to install")
+                    .AddText($"Version {FormatVersion(ParsePluginVersion(release.TagName))} is ready to install")
                     .AddButton(new ToastButton()
                         .SetContent("Download")
                         .AddArgument("action", "update"))
@@ -132,12 +133,21 @@ public static class Updater
             .FirstOrDefault();
     }
 
-    // "v1.2" → 1.2; anything else (e.g. "desktop-v0.62.0") → null.
-    static Version? ParsePluginVersion(string tag) =>
-        tag.StartsWith("v", StringComparison.Ordinal)
-        && Version.TryParse(tag.Substring(1), out var version)
-            ? version
-            : null;
+    // "tekla-link-v1.4" or "v1.3" → 1.4 / 1.3; anything else
+    // (e.g. "desktop-v0.62.0", "desktop-updater") → null.
+    internal static Version? ParsePluginVersion(string tag)
+    {
+        foreach (var prefix in new[] { "tekla-link-v", "v" })
+        {
+            if (tag.StartsWith(prefix, StringComparison.Ordinal)
+                && Version.TryParse(tag.Substring(prefix.Length), out var version))
+                return version;
+        }
+        return null;
+    }
+
+    static string FormatVersion(Version? version) =>
+        version == null ? "" : $"{version.Major}.{version.Minor}";
 
     static bool IsNewerVersion(string tag)
     {
