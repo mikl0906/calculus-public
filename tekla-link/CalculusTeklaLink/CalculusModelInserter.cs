@@ -8,7 +8,7 @@ using Tekla.Structures;
 
 using TSM = Tekla.Structures.Model;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 /// <summary>
 /// Maps each Calculus object id to the Tekla object it was inserted/modified into,

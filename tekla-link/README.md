@@ -1,4 +1,4 @@
-# Calculus Link for Tekla Structures
+# Calculus Tekla Link
 
 Transfers structural objects between [Calculus](https://github.com/mikl0906/calculus-public)
 and Tekla Structures: beams, plates, cuts, bolts, welds, rebars, grids and
@@ -23,14 +23,14 @@ lines.
 | Path | What |
 |---|---|
 | `CalculusModel/` | The `.calculus` format in C# (structural objects only) and the sync hash. Mirrors the TypeScript schema in Calculus; keep the two aligned. |
-| `CalculusLink/` | The WPF app: Tekla ↔ Calculus mapping, the bridge client, sync plan and preview. |
+| `CalculusTeklaLink/` | The WPF app: Tekla ↔ Calculus mapping, the bridge client, sync plan and preview. |
 | `Tsep/` | The Tekla extension package definition and the macro that starts the app from Tekla. |
-| `icons/` | `icon.svg`, the source of the app icon (`CalculusLink/AppIcon.ico`), the macro icon and the package image (`Tsep/`). |
+| `icons/` | `icon.svg`, the source of the app icon (`CalculusTeklaLink/AppIcon.ico`), the macro icon and the package image (`Tsep/`). |
 
 ## Build
 
 ```
-dotnet build CalculusLink.slnx -c Release
+dotnet build CalculusTeklaLink.slnx -c Release
 ```
 
 The Tekla Open API comes from nuget.org at compile time only
@@ -41,7 +41,7 @@ Tekla Structures installation it runs under: Tekla rewrites the
 package.
 
 For debugging, the Debug configuration sets `TeklaVersion` (see
-`CalculusLink.csproj`) so `TSAppConfigPatcherTask` patches the config for
+`CalculusTeklaLink.csproj`) so `TSAppConfigPatcherTask` patches the config for
 that installed version; start Tekla first, then F5.
 
 ## Package
@@ -60,9 +60,9 @@ The script:
 3. stops if any `Tekla.*`, `Trimble.*` or `DotNetKit` assembly is in it, or if
    the files differ from the `<File>` list in `Tsep/TsepDefinition.xml`;
 4. runs the newest installed Tekla's BatchBuilder with that manifest and
-   writes `Tsep/out/CalculusLink_<version>.tsep`.
+   writes `Tsep/out/CalculusTeklaLink_<version>.tsep`.
 
-The package version is the `<Version>` in `CalculusLink/CalculusLink.csproj`
+The package version is the `<Version>` in `CalculusTeklaLink/CalculusTeklaLink.csproj`
 (major.minor); the `Version` in `TsepDefinition.xml` is overridden. Pass
 `-TeklaBin <a Tekla bin folder>` to use a specific Tekla's packager.
 

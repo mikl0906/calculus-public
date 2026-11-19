@@ -1,6 +1,6 @@
 ﻿using Wpf.Ui;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 public class SnackbarHelper(ISnackbarService snackbar)
 {

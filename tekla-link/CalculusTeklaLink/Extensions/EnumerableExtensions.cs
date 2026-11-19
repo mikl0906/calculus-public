@@ -1,4 +1,4 @@
-﻿namespace CalculusLink.Extensions;
+﻿namespace CalculusTeklaLink.Extensions;
 
 public static class EnumerableExtensions
 {

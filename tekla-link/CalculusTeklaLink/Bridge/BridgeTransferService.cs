@@ -6,7 +6,7 @@ using Tekla.Structures;
 
 using TSM = Tekla.Structures.Model;
 
-namespace CalculusLink.Bridge;
+namespace CalculusTeklaLink.Bridge;
 
 /// <summary>
 /// Direct (file-less) transfer between Tekla and a running Calculus editor over

@@ -5,14 +5,14 @@ using Microsoft.Toolkit.Uwp.Notifications;
 
 using Serilog;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 public partial class App : Application
 {
     public App()
     {
-        // Initialize local folder at User/AppData/Local/CalculusLink
-        var folderService = new FolderService("CalculusLink");
+        // Initialize local folder at User/AppData/Local/CalculusTeklaLink
+        var folderService = new FolderService("CalculusTeklaLink");
 
         // Setup Serilog to log to a file in the local folder
         Log.Logger = new LoggerConfiguration()

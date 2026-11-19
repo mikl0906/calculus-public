@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 
 using CalculusModel;
 
-namespace CalculusLink.Bridge;
+namespace CalculusTeklaLink.Bridge;
 
 /// <summary>Snapshot returned by the bridge's <c>GET /status</c>: the app's
 /// version, the port, and the editors that hold a model (one per desktop

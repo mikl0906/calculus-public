@@ -8,7 +8,7 @@ using TSM = Tekla.Structures.Model;
 using Wpf.Ui.Controls;
 using Wpf.Ui;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 public partial class MainWindow : FluentWindow
 {

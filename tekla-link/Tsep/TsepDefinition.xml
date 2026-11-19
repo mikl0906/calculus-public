@@ -2,8 +2,8 @@
 <TEP Version="2.0">
 
   <Product 
-    Id="CalculusLink" 
-		Name="Calculus Link for Tekla Structures"
+    Id="CalculusTeklaLink" 
+		Name="Calculus Tekla Link"
     UpgradeCode="4312152f-6e66-4b45-8a1b-855db2cfc081" 
     Version="1.2" 
     Language="1033"
@@ -29,8 +29,8 @@
   </SourcePathVariables>
 
   <TargetPathVariables>
-		<PathVariable Id="ExtensionTarget" Value="%commonEnvFolder%\extensions\CalculusLink"/>
-    <PathVariable Id="FeaturesTarget" Value="%commonEnvFolder%\extensions\Features\CalculusLink\"/>
+		<PathVariable Id="ExtensionTarget" Value="%commonEnvFolder%\extensions\CalculusTeklaLink"/>
+    <PathVariable Id="FeaturesTarget" Value="%commonEnvFolder%\extensions\Features\CalculusTeklaLink\"/>
 		<PathVariable Id="ModelMacrosTarget" Value="%commonEnvFolder%\macros\modeling\"/>
 		<PathVariable Id="DrawingMacrosTarget" Value="%commonEnvFolder%\macros\drawings\"/>
     <PathVariable Id="AttributesTarget" Value="%commonEnvFolder%\system\"/>
@@ -40,9 +40,9 @@
   <Component Id="TheExtensionComponent" Guid="a3ffbdc4-73ce-449d-906a-87d1a998f1ac">
     <File Id="20e1ad30-ffd6-45fb-b52f-11677b33fa84" Source="%Extension%\CalculusModel.dll" Target="%ExtensionTarget%"/>
     <File Id="de1c2eec-f697-4110-ad51-c576527e7905" Source="%Extension%\CalculusModel.pdb" Target="%ExtensionTarget%"/>
-    <File Id="479b82f7-7dc9-4019-b698-f5102e8490f7" Source="%Extension%\CalculusLink.exe" Target="%ExtensionTarget%"/>
-    <File Id="8350e12f-b0e8-434e-a5da-054196b8fb74" Source="%Extension%\CalculusLink.exe.config" Target="%ExtensionTarget%"/>
-    <File Id="b7dc71aa-aa71-4985-88d9-45cf3293d97d" Source="%Extension%\CalculusLink.pdb" Target="%ExtensionTarget%"/>
+    <File Id="479b82f7-7dc9-4019-b698-f5102e8490f7" Source="%Extension%\CalculusTeklaLink.exe" Target="%ExtensionTarget%"/>
+    <File Id="8350e12f-b0e8-434e-a5da-054196b8fb74" Source="%Extension%\CalculusTeklaLink.exe.config" Target="%ExtensionTarget%"/>
+    <File Id="b7dc71aa-aa71-4985-88d9-45cf3293d97d" Source="%Extension%\CalculusTeklaLink.pdb" Target="%ExtensionTarget%"/>
     <File Id="84f1b4f5-f0a1-4b02-a438-ef67474a6d74" Source="%Extension%\CommunityToolkit.Mvvm.dll" Target="%ExtensionTarget%"/>
     <File Id="6237d6e5-babc-44ec-b942-edce5482fc7a" Source="%Extension%\Microsoft.Bcl.AsyncInterfaces.dll" Target="%ExtensionTarget%"/>
     <File Id="c07a561c-41a8-41d1-975d-df256accca97" Source="%Extension%\Microsoft.Toolkit.Uwp.Notifications.dll" Target="%ExtensionTarget%"/>
@@ -63,8 +63,8 @@
     <File Id="05232f7e-896a-42d3-af70-997edb8df6b1" Source="%Extension%\TeklaAPIExtensions.Model.dll" Target="%ExtensionTarget%"/>
     <File Id="d6c48bd8-8384-4b9d-a748-716d46dd8f30" Source="%Extension%\Wpf.Ui.Abstractions.dll" Target="%ExtensionTarget%"/>
     <File Id="744a2255-a1e0-4d79-b22e-e1d39020c89f" Source="%Extension%\Wpf.Ui.dll" Target="%ExtensionTarget%"/>
-    <File Id="ffc0a605-a146-4b9e-964b-cb309b751f04" Source="%ModelMacros%\Calculus Link.cs" Target="%ModelMacrosTarget%"/>
-    <File Id="f87cdabd-8ce0-4fc6-8992-b0439685e9f4" Source="%ModelMacros%\Calculus Link.png" Target="%ModelMacrosTarget%"/>
+    <File Id="ffc0a605-a146-4b9e-964b-cb309b751f04" Source="%ModelMacros%\Calculus Tekla Link.cs" Target="%ModelMacrosTarget%"/>
+    <File Id="f87cdabd-8ce0-4fc6-8992-b0439685e9f4" Source="%ModelMacros%\Calculus Tekla Link.png" Target="%ModelMacrosTarget%"/>
   </Component>
 
   <Feature Id="TheExtensionFeature" Title="ExtensionFeature">

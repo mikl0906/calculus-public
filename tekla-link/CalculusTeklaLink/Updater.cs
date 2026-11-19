@@ -9,7 +9,7 @@ using Serilog;
 
 using Windows.Web.Http;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 public class GithubRelease
 {
@@ -116,7 +116,7 @@ public static class Updater
         using var client = new HttpClient();
 
         // REQUIRED by GitHub API
-        client.DefaultRequestHeaders.Add("User-Agent", "CalculusLink");
+        client.DefaultRequestHeaders.Add("User-Agent", "CalculusTeklaLink");
 
         var response = await client.GetAsync(new Uri(Url));
         response.EnsureSuccessStatusCode();

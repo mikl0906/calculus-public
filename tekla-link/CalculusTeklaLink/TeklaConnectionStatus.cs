@@ -3,7 +3,7 @@ using System.Windows.Media;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 /// <summary>
 /// The Tekla model shown in the title bar (template in MainWindow.xaml): its

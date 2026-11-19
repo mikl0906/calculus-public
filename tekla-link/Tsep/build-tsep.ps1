@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-  Builds the Calculus Link .tsep: Release build -> Tsep/extension -> checks ->
-  Tekla's TeklaExtensionPackage.BatchBuilder -> Tsep/out/CalculusLink_<version>.tsep
+  Builds the Calculus Tekla Link .tsep: Release build -> Tsep/extension -> checks ->
+  Tekla's TeklaExtensionPackage.BatchBuilder -> Tsep/out/CalculusTeklaLink_<version>.tsep
 
 .DESCRIPTION
-  The package version is the <Version> in CalculusLink.csproj (major.minor),
+  The package version is the <Version> in CalculusTeklaLink.csproj (major.minor),
   so the app and the package can't drift. The packager ships with every
   Tekla Structures 2022+ installation; the newest one installed is used
   unless -TeklaBin points at a specific bin folder.
@@ -29,7 +29,7 @@ $root = Split-Path $tsep -Parent
 $manifest = Join-Path $tsep 'TsepDefinition.xml'
 $staging = Join-Path $tsep 'extension'
 $outDir = Join-Path $tsep 'out'
-$buildOutput = Join-Path $root 'CalculusLink\bin\Release\net48'
+$buildOutput = Join-Path $root 'CalculusTeklaLink\bin\Release\net48'
 
 # --- Packager ---------------------------------------------------------------
 if (-not $TeklaBin) {
@@ -47,12 +47,12 @@ if (-not $builder -or -not (Test-Path $builder)) {
 }
 
 # --- Version ----------------------------------------------------------------
-$csproj = [xml](Get-Content (Join-Path $root 'CalculusLink\CalculusLink.csproj') -Raw)
+$csproj = [xml](Get-Content (Join-Path $root 'CalculusTeklaLink\CalculusTeklaLink.csproj') -Raw)
 $version = [version](($csproj.Project.PropertyGroup | ForEach-Object { $_.Version }) | Where-Object { $_ } | Select-Object -First 1)
 $packageVersion = "$($version.Major).$($version.Minor)"
 
 # --- Build and stage --------------------------------------------------------
-dotnet build (Join-Path $root 'CalculusLink.slnx') -c Release -nologo -v q
+dotnet build (Join-Path $root 'CalculusTeklaLink.slnx') -c Release -nologo -v q
 if ($LASTEXITCODE -ne 0) { throw 'dotnet build failed' }
 
 if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
@@ -81,7 +81,7 @@ if ($diff) {
 
 # --- Package ----------------------------------------------------------------
 New-Item -ItemType Directory $outDir -Force | Out-Null
-$package = Join-Path $outDir "CalculusLink_$packageVersion.tsep"
+$package = Join-Path $outDir "CalculusTeklaLink_$packageVersion.tsep"
 & $builder -i $manifest -o $package -v $packageVersion
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $package)) { throw 'TeklaExtensionPackage.BatchBuilder failed' }
 

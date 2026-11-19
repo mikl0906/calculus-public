@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 public class FolderService(string localPath)
 {

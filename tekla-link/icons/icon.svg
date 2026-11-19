@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24">
-  <!-- Calculus Link: the Calculus beam-section mark with an exchange badge.
-       Source of CalculusLink/AppIcon.ico, Tsep/Icon.png and Tsep/macros modeling/Calculus Link.png. -->
+  <!-- Calculus Tekla Link: the Calculus beam-section mark with an exchange badge.
+       Source of CalculusTeklaLink/AppIcon.ico, Tsep/Icon.png and Tsep/macros modeling/Calculus Tekla Link.png. -->
   <rect width="24" height="24" rx="5" fill="#000000"/>
   <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
      transform="translate(9.8 9.8) scale(0.7) translate(-12 -11.5)">

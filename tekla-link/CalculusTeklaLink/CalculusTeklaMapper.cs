@@ -5,12 +5,12 @@ using CalculusModel;
 
 using Serilog;
 
-using CalculusLink.Extensions;
+using CalculusTeklaLink.Extensions;
 
 using TSG = Tekla.Structures.Geometry3d;
 using TSM = Tekla.Structures.Model;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 // TODO:
 // 1) Weld line type mapping is currently ignored

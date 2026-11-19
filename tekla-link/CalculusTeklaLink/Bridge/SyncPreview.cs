@@ -3,7 +3,7 @@ using Serilog;
 using TSM = Tekla.Structures.Model;
 using TSUI = Tekla.Structures.Model.UI;
 
-namespace CalculusLink.Bridge;
+namespace CalculusTeklaLink.Bridge;
 
 /// <summary>
 /// Shows a <see cref="SyncPlan"/> in both models before anything is written

@@ -4,7 +4,7 @@ using System.Reflection;
 
 using CalculusModel;
 
-using CalculusLink.Bridge;
+using CalculusTeklaLink.Bridge;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,7 +18,7 @@ using Wpf.Ui;
 using TSM = Tekla.Structures.Model;
 using TSUI = Tekla.Structures.Model.UI;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 public enum CoordinateSystemType
 {
@@ -228,7 +228,7 @@ public partial class MainWindowViewModel : ObservableObject
                 _snackbar.ShowErrorMessage("No files were imported");
             }
             Log.Information("Imported {SuccessCount}/{TotalCount} files", successCount, files.Length);
-            TSM.Operations.Operation.DisplayPrompt($"Calculus Link: Imported {successCount}/{files.Length} files");
+            TSM.Operations.Operation.DisplayPrompt($"Calculus Tekla Link: Imported {successCount}/{files.Length} files");
         });
     }
     bool CanImport() => !IsImporting && !IsExporting;
@@ -288,7 +288,7 @@ public partial class MainWindowViewModel : ObservableObject
                     // Show success message and log the export
                     _snackbar.ShowSuccessMessage("Export completed");
                     Log.Information("Exported {Count} objects.", calculusModel.Objects.Count);
-                    TSM.Operations.Operation.DisplayPrompt($"Calculus Link: Exported completed");
+                    TSM.Operations.Operation.DisplayPrompt($"Calculus Tekla Link: Exported completed");
 
                     // Open folder after export
                     var folderPath = Path.GetDirectoryName(saveFileDialog.FileName);
@@ -605,7 +605,7 @@ public partial class MainWindowViewModel : ObservableObject
         // Objects left out are worth a look: their Tekla GUIDs are in the log.
         if (outcome.Result.Refused.Count > 0) _snackbar.ShowWarningMessage(message);
         else _snackbar.ShowSuccessMessage(message);
-        TSM.Operations.Operation.DisplayPrompt($"Calculus Link: {message}");
+        TSM.Operations.Operation.DisplayPrompt($"Calculus Tekla Link: {message}");
     }
 
     /// <summary>Drop the preview: the colours leave both models, nothing is written.</summary>

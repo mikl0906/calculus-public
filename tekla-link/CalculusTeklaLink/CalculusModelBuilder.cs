@@ -4,7 +4,7 @@ using Serilog;
 
 using TSM = Tekla.Structures.Model;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 public static class CalculusModelBuilder
 {

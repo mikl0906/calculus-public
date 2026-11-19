@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace CalculusLink.Bridge;
+namespace CalculusTeklaLink.Bridge;
 
 /// <summary>
 /// A preview row's state dot: the same colours <see cref="SyncPreview"/> paints

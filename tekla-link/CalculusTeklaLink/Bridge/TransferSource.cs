@@ -5,7 +5,7 @@ using Tekla.Structures;
 using TSM = Tekla.Structures.Model;
 using TSUI = Tekla.Structures.Model.UI;
 
-namespace CalculusLink.Bridge;
+namespace CalculusTeklaLink.Bridge;
 
 /// <summary>What a transfer reads from its source model.</summary>
 public enum TransferScope

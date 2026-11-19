@@ -2,7 +2,7 @@ using CalculusModel;
 
 using TSM = Tekla.Structures.Model;
 
-namespace CalculusLink.Bridge;
+namespace CalculusTeklaLink.Bridge;
 
 /// <summary>What a transfer would do with one object (https://docs.calculus.build/reference/tekla-plugin/sync-behavior).</summary>
 public enum SyncState

@@ -2,13 +2,13 @@ using System.Collections.ObjectModel;
 
 using CalculusModel;
 
-using CalculusLink.Bridge;
+using CalculusTeklaLink.Bridge;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using TSM = Tekla.Structures.Model;
 
-namespace CalculusLink;
+namespace CalculusTeklaLink;
 
 /// <summary>
 /// One preview row: an object a transfer would add, update, overwrite or

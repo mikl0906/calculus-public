@@ -24,8 +24,8 @@ namespace UserMacros
                 return;
             }
 
-            var folderPath = Path.Combine(dataDir, "Environments", "common", "extensions", "CalculusLink"); ;
-            var fileName = "CalculusLink.exe";
+            var folderPath = Path.Combine(dataDir, "Environments", "common", "extensions", "CalculusTeklaLink"); ;
+            var fileName = "CalculusTeklaLink.exe";
             var programPath = Path.Combine(folderPath, fileName);
 
             if (!File.Exists(programPath))

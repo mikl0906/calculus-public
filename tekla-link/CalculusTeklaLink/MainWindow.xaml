@@ -1,13 +1,13 @@
 ﻿<ui:FluentWindow
-    x:Class="CalculusLink.MainWindow"
+    x:Class="CalculusTeklaLink.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:bridge="clr-namespace:CalculusLink.Bridge"
+    xmlns:bridge="clr-namespace:CalculusTeklaLink.Bridge"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:CalculusLink"
+    xmlns:local="clr-namespace:CalculusTeklaLink"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="Calculus Link"
+    Title="Calculus Tekla Link"
     Width="560"
     Height="800"
     MinWidth="480"
@@ -305,7 +305,7 @@
                         Margin="8,0,0,0"
                         VerticalAlignment="Top"
                         Style="{StaticResource BodyTextBlockStyle}"
-                        Text="Calculus Link" />
+                        Text="Calculus Tekla Link" />
                 </StackPanel>
             </ui:TitleBar.Header>
             <ui:TitleBar.TrailingContent>

@@ -2,7 +2,7 @@ using CalculusModel;
 
 using TSM = Tekla.Structures.Model;
 
-namespace CalculusLink.Bridge;
+namespace CalculusTeklaLink.Bridge;
 
 /// <summary>
 /// Reads/writes the cross-reference link on the Tekla side: the Calculus object id

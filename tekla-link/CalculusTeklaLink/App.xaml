@@ -1,8 +1,8 @@
 ﻿<Application
-    x:Class="CalculusLink.App"
+    x:Class="CalculusTeklaLink.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="clr-namespace:CalculusLink"
+    xmlns:local="clr-namespace:CalculusTeklaLink"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     StartupUri="MainWindow.xaml">
     <Application.Resources>
