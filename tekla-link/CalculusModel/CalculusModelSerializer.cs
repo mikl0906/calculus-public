@@ -25,7 +25,14 @@ public static class CalculusModelSerializer
     public static Model? Deserialize(string json)
     {
         var model = JsonSerializer.Deserialize<Model>(json, Options);
-        model?.Objects.RemoveAll(o => o is null);
+        if (model is null) return null;
+        // A pre-v19 file keeps its objects at the top level.
+        if (model.LegacyObjects is { } legacy)
+        {
+            model.StructuralModel.Objects.AddRange(legacy);
+            model.LegacyObjects = null;
+        }
+        model.Objects.RemoveAll(o => o is null);
         return model;
     }
 

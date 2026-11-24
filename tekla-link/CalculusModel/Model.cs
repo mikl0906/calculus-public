@@ -345,8 +345,32 @@ public class Line : ModelObject
 
 /// <summary>A .calculus document (the structural objects this mirror knows).
 /// It has no name: the file name IS the name (Nov 2026); an old file's
-/// <c>name</c> key is ignored on read.</summary>
+/// <c>name</c> key is ignored on read.
+///
+/// Since format v19 (Nov 2026) objects live in containers: the structural
+/// model's are under <c>structuralModel.objects</c> (the analytical models
+/// and the references, which this mirror does not know, have their own). A
+/// file from before v19 has one top-level <c>objects</c> list instead; it is
+/// read into the structural model. A written file carries no <c>version</c>,
+/// so Calculus migrates it like any old file.</summary>
 public class Model
+{
+    public StructuralModel StructuralModel { get; set; } = new();
+
+    /// <summary>The structural model's objects.</summary>
+    [JsonIgnore]
+    public List<ModelObject> Objects => StructuralModel.Objects;
+
+    /// <summary>A pre-v19 file's top-level <c>objects</c>; moved into the
+    /// structural model on read (<see cref="CalculusModelSerializer"/>), never
+    /// written.</summary>
+    [JsonPropertyName("objects")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<ModelObject>? LegacyObjects { get; set; }
+}
+
+/// <summary>The structural model container (format v19): its objects.</summary>
+public class StructuralModel
 {
     public List<ModelObject> Objects { get; set; } = [];
 }
