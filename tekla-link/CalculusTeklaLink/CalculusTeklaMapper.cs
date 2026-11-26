@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Numerics;
+
+using System.Globalization;
 
 using CalculusModel;
 
@@ -174,7 +175,7 @@ public static class CalculusTeklaMapper
             TSM.Position.RotationEnum.FRONT => -90,
             _ => throw new Exception("Invalid Tekla beam rotation enum")
         } + teklaBeam.Position.RotationOffset;
-        beam.Angle = (float)(angleDeg / 180 * Math.PI);
+        beam.Angle = (angleDeg / 180 * Math.PI);
 
         if (teklaBeam.Position.Rotation is TSM.Position.RotationEnum.TOP)
         {
@@ -193,8 +194,8 @@ public static class CalculusTeklaMapper
                 _ => throw new Exception("Invalid Tekla beam rotation enum")
             };
 
-            beam.YOffset = (float)teklaBeam.Position.PlaneOffset;
-            beam.ZOffset = (float)teklaBeam.Position.DepthOffset;
+            beam.YOffset = teklaBeam.Position.PlaneOffset;
+            beam.ZOffset = teklaBeam.Position.DepthOffset;
         }
         else if (teklaBeam.Position.Rotation is TSM.Position.RotationEnum.BACK)
         {
@@ -268,7 +269,7 @@ public static class CalculusTeklaMapper
     /// <summary>Tekla stores offsets to ~0.001 mm of noise (100 reads back as 99.9992).</summary>
     const int OffsetDecimals = 2;
 
-    static TSM.Offset ToTeklaOffset(Vector3 offset, double angle)
+    static TSM.Offset ToTeklaOffset(Vec3 offset, double angle)
     {
         var (sin, cos) = (Math.Sin(angle), Math.Cos(angle));
         return new TSM.Offset
@@ -279,13 +280,13 @@ public static class CalculusTeklaMapper
         };
     }
 
-    static Vector3 ToCalculusOffset(TSM.Offset offset, double angle)
+    static Vec3 ToCalculusOffset(TSM.Offset offset, double angle)
     {
         var (sin, cos) = (Math.Sin(angle), Math.Cos(angle));
-        return new Vector3(
-            (float)Math.Round(offset.Dx, OffsetDecimals),
-            (float)Math.Round(offset.Dy * cos + offset.Dz * sin, OffsetDecimals),
-            (float)Math.Round(-offset.Dy * sin + offset.Dz * cos, OffsetDecimals));
+        return new Vec3(
+            Math.Round(offset.Dx, OffsetDecimals),
+            Math.Round(offset.Dy * cos + offset.Dz * sin, OffsetDecimals),
+            Math.Round(-offset.Dy * sin + offset.Dz * cos, OffsetDecimals));
     }
 
     public static void ToTeklaBeam(Beam beam, TSM.Beam teklaBeam)
@@ -317,14 +318,14 @@ public static class CalculusTeklaMapper
 
     public static void ToCalculusBeam(TSM.Beam teklaBeam, Beam beam)
     {
-        beam.Start = new Vector3(
-            (float)teklaBeam.StartPoint.X,
-            (float)teklaBeam.StartPoint.Y,
-            (float)teklaBeam.StartPoint.Z);
-        beam.End = new Vector3(
-            (float)teklaBeam.EndPoint.X,
-            (float)teklaBeam.EndPoint.Y,
-            (float)teklaBeam.EndPoint.Z);
+        beam.Start = new Vec3(
+            teklaBeam.StartPoint.X,
+            teklaBeam.StartPoint.Y,
+            teklaBeam.StartPoint.Z);
+        beam.End = new Vec3(
+            teklaBeam.EndPoint.X,
+            teklaBeam.EndPoint.Y,
+            teklaBeam.EndPoint.Z);
         beam.Name = teklaBeam.Name;
         beam.Profile = teklaBeam.Profile.ProfileString;
         beam.Material = teklaBeam.Material.MaterialString;
@@ -575,14 +576,14 @@ public static class CalculusTeklaMapper
     {
         var beam = new CutBeam
         {
-            Start = new Vector3(
-                (float)teklaBeam.StartPoint.X,
-                (float)teklaBeam.StartPoint.Y,
-                (float)teklaBeam.StartPoint.Z),
-            End = new Vector3(
-                (float)teklaBeam.EndPoint.X,
-                (float)teklaBeam.EndPoint.Y,
-                (float)teklaBeam.EndPoint.Z),
+            Start = new Vec3(
+                teklaBeam.StartPoint.X,
+                teklaBeam.StartPoint.Y,
+                teklaBeam.StartPoint.Z),
+            End = new Vec3(
+                teklaBeam.EndPoint.X,
+                teklaBeam.EndPoint.Y,
+                teklaBeam.EndPoint.Z),
             Name = teklaBeam.Name,
             Profile = teklaBeam.Profile.ProfileString,
             Material = teklaBeam.Material.MaterialString,
@@ -612,7 +613,7 @@ public static class CalculusTeklaMapper
                 TSM.Position.DepthEnum.BEHIND => PlatePosition.Bottom,
                 _ => PlatePosition.Center
             },
-            ZOffset = (float)teklaPlate.Position.DepthOffset,
+            ZOffset = teklaPlate.Position.DepthOffset,
         };
 
         return plate;
@@ -651,18 +652,18 @@ public static class CalculusTeklaMapper
     public static void ToCalculusCutPlane(TSM.CutPlane teklaCutPlane, CutPlane cutPlane, string[] partIds)
     {
         cutPlane.PartIds = partIds;
-        cutPlane.P1 = new Vector3(
-            (float)teklaCutPlane.Plane.Origin.X,
-            (float)teklaCutPlane.Plane.Origin.Y,
-            (float)teklaCutPlane.Plane.Origin.Z);
-        cutPlane.P2 = new Vector3(
-            (float)(teklaCutPlane.Plane.Origin.X + teklaCutPlane.Plane.AxisX.X),
-            (float)(teklaCutPlane.Plane.Origin.Y + teklaCutPlane.Plane.AxisX.Y),
-            (float)(teklaCutPlane.Plane.Origin.Z + teklaCutPlane.Plane.AxisX.Z));
-        cutPlane.P3 = new Vector3(
-            (float)(teklaCutPlane.Plane.Origin.X + teklaCutPlane.Plane.AxisY.X),
-            (float)(teklaCutPlane.Plane.Origin.Y + teklaCutPlane.Plane.AxisY.Y),
-            (float)(teklaCutPlane.Plane.Origin.Z + teklaCutPlane.Plane.AxisY.Z));
+        cutPlane.P1 = new Vec3(
+            teklaCutPlane.Plane.Origin.X,
+            teklaCutPlane.Plane.Origin.Y,
+            teklaCutPlane.Plane.Origin.Z);
+        cutPlane.P2 = new Vec3(
+            (teklaCutPlane.Plane.Origin.X + teklaCutPlane.Plane.AxisX.X),
+            (teklaCutPlane.Plane.Origin.Y + teklaCutPlane.Plane.AxisX.Y),
+            (teklaCutPlane.Plane.Origin.Z + teklaCutPlane.Plane.AxisX.Z));
+        cutPlane.P3 = new Vec3(
+            (teklaCutPlane.Plane.Origin.X + teklaCutPlane.Plane.AxisY.X),
+            (teklaCutPlane.Plane.Origin.Y + teklaCutPlane.Plane.AxisY.Y),
+            (teklaCutPlane.Plane.Origin.Z + teklaCutPlane.Plane.AxisY.Z));
         cutPlane.Fit = false;
         cutPlane.Userdata.Add("tekla_id", teklaCutPlane.Identifier.GUID.ToString());
     }
@@ -687,18 +688,18 @@ public static class CalculusTeklaMapper
     public static void ToCalculusFitting(TSM.Fitting teklaFitting, CutPlane cutPlane, string[] partIds)
     {
         cutPlane.PartIds = partIds;
-        cutPlane.P1 = new Vector3(
-            (float)teklaFitting.Plane.Origin.X,
-            (float)teklaFitting.Plane.Origin.Y,
-            (float)teklaFitting.Plane.Origin.Z);
-        cutPlane.P2 = new Vector3(
-            (float)(teklaFitting.Plane.Origin.X + teklaFitting.Plane.AxisX.X),
-            (float)(teklaFitting.Plane.Origin.Y + teklaFitting.Plane.AxisX.Y),
-            (float)(teklaFitting.Plane.Origin.Z + teklaFitting.Plane.AxisX.Z));
-        cutPlane.P3 = new Vector3(
-            (float)(teklaFitting.Plane.Origin.X + teklaFitting.Plane.AxisY.X),
-            (float)(teklaFitting.Plane.Origin.Y + teklaFitting.Plane.AxisY.Y),
-            (float)(teklaFitting.Plane.Origin.Z + teklaFitting.Plane.AxisY.Z));
+        cutPlane.P1 = new Vec3(
+            teklaFitting.Plane.Origin.X,
+            teklaFitting.Plane.Origin.Y,
+            teklaFitting.Plane.Origin.Z);
+        cutPlane.P2 = new Vec3(
+            (teklaFitting.Plane.Origin.X + teklaFitting.Plane.AxisX.X),
+            (teklaFitting.Plane.Origin.Y + teklaFitting.Plane.AxisX.Y),
+            (teklaFitting.Plane.Origin.Z + teklaFitting.Plane.AxisX.Z));
+        cutPlane.P3 = new Vec3(
+            (teklaFitting.Plane.Origin.X + teklaFitting.Plane.AxisY.X),
+            (teklaFitting.Plane.Origin.Y + teklaFitting.Plane.AxisY.Y),
+            (teklaFitting.Plane.Origin.Z + teklaFitting.Plane.AxisY.Z));
         cutPlane.Fit = true;
         cutPlane.Userdata.Add("tekla_id", teklaFitting.Identifier.GUID.ToString());
     }
@@ -718,13 +719,13 @@ public static class CalculusTeklaMapper
 
         var x = bolt.P2 - bolt.P1;
         var projectionSq = x.X * x.X + x.Y * x.Y;
-        x = Vector3.Normalize(x);
-        var z = Vector3.Normalize(Vector3.Cross(x, Vector3.Subtract(bolt.P3, bolt.P1)));
+        x = Vec3.Normalize(x);
+        var z = Vec3.Normalize(Vec3.Cross(x, Vec3.Subtract(bolt.P3, bolt.P1)));
 
-        var teklaUp = projectionSq > 1 ? new Vector3(0, 0, 1) : x.Z > 0 ? new Vector3(-1, 0, 0) : new Vector3(1, 0, 0);
-        var teklaY = Vector3.Normalize(Vector3.Cross(teklaUp, x));
-        var teklaZ = Vector3.Normalize(Vector3.Cross(x, teklaY));
-        var angleRad = Math.Atan2(Vector3.Dot(z, teklaY), Vector3.Dot(z, teklaZ));
+        var teklaUp = projectionSq > 1 ? new Vec3(0, 0, 1) : x.Z > 0 ? new Vec3(-1, 0, 0) : new Vec3(1, 0, 0);
+        var teklaY = Vec3.Normalize(Vec3.Cross(teklaUp, x));
+        var teklaZ = Vec3.Normalize(Vec3.Cross(x, teklaY));
+        var angleRad = Math.Atan2(Vec3.Dot(z, teklaY), Vec3.Dot(z, teklaZ));
         var angleDeg = -angleRad * 180 / Math.PI;
         teklaBolt.Position.Rotation = angleDeg switch
         {
@@ -865,12 +866,12 @@ public static class CalculusTeklaMapper
         var boltOrigin = teklaBoltCs.Origin;
         var boltX = teklaBoltCs.AxisX.GetNormal();
         var boltY = teklaBoltCs.AxisY.GetNormal();
-        bolt.P1 = new Vector3(
-            (float)boltOrigin.X,
-            (float)boltOrigin.Y,
-            (float)boltOrigin.Z);
-        bolt.P2 = bolt.P1 + new Vector3((float)boltX.X * 100, (float)boltX.Y * 100, (float)boltX.Z * 100);
-        bolt.P3 = bolt.P1 + new Vector3((float)boltY.X * 100, (float)boltY.Y * 100, (float)boltY.Z * 100);
+        bolt.P1 = new Vec3(
+            boltOrigin.X,
+            boltOrigin.Y,
+            boltOrigin.Z);
+        bolt.P2 = bolt.P1 + new Vec3(boltX.X * 100, boltX.Y * 100, boltX.Z * 100);
+        bolt.P3 = bolt.P1 + new Vec3(boltY.X * 100, boltY.Y * 100, boltY.Z * 100);
 
         // Basic properties
         bolt.Size = teklaBolt.BoltSize;
@@ -1105,7 +1106,7 @@ public static class CalculusTeklaMapper
         {
             weld.Polygon = [.. teklaPolygonWeld.Polygon.Points
                 .OfType<TSG.Point>()
-                .Select(p => new Vector3((float)p.X, (float)p.Y, (float)p.Z))];
+                .Select(p => new Vec3(p.X, p.Y, p.Z))];
         }
 
         // Basic properties
@@ -1320,25 +1321,25 @@ public static class CalculusTeklaMapper
 
         if (teklaRebar is TSM.SingleRebar singleRebar)
         {
-            rebar.Size = double.TryParse(singleRebar.Size, out var size) ? size : 1;
+            rebar.Size = double.TryParse(singleRebar.Size, NumberStyles.Float, CultureInfo.InvariantCulture, out var size) ? size : 1;
             rebar.Shapes = [[.. singleRebar.Polygon.Points
                 .OfType<TSG.Point>()
-                .Select(p => new Vector3((float)p.X, (float)p.Y, (float)p.Z))
+                .Select(p => new Vec3(p.X, p.Y, p.Z))
             ]];
         }
         else if (teklaRebar is TSM.RebarGroup rebarGroup)
         {
-            rebar.Size = double.TryParse(rebarGroup.Size, out var size) ? size : 1;
+            rebar.Size = double.TryParse(rebarGroup.Size, NumberStyles.Float, CultureInfo.InvariantCulture, out var size) ? size : 1;
             rebar.Shapes = [.. rebarGroup.Polygons
                 .OfType<TSM.Polygon>()
                 .Select(poly => poly.Points
                     .OfType<TSG.Point>()
-                    .Select(p => new Vector3((float)p.X, (float)p.Y, (float)p.Z))
+                    .Select(p => new Vec3(p.X, p.Y, p.Z))
                     .ToArray())
             ];
             rebar.Polygon = [
-                new Vector3((float)rebarGroup.StartPoint.X, (float)rebarGroup.StartPoint.Y, (float)rebarGroup.StartPoint.Z),
-                new Vector3((float)rebarGroup.EndPoint.X, (float)rebarGroup.EndPoint.Y, (float)rebarGroup.EndPoint.Z)
+                new Vec3(rebarGroup.StartPoint.X, rebarGroup.StartPoint.Y, rebarGroup.StartPoint.Z),
+                new Vec3(rebarGroup.EndPoint.X, rebarGroup.EndPoint.Y, rebarGroup.EndPoint.Z)
             ];
 
             rebar.FromPlaneCover = [rebarGroup.StartFromPlaneOffset, rebarGroup.EndFromPlaneOffset];
@@ -1378,11 +1379,18 @@ public static class CalculusTeklaMapper
     }
 
     // Grid
-    static List<float> ParseNumberList(string s)
+    // Tekla writes these lists with a decimal POINT whatever the Windows
+    // locale; read and write them with the invariant culture (a decimal
+    // comma locale dropped "6000.4" or read it as 60004 — Nov 26 2026).
+
+    static string TeklaNumberList(IEnumerable<double> values) =>
+        string.Join(" ", values.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
+
+    static List<double> ParseNumberList(string s)
     {
         // The string may look like "0 6000.4 5000.6 3*4000"
-        // That should be converted to a list of floats [0, 6000.4, 5000.6, 4000, 4000, 4000]
-        var result = new List<float>();
+        // That should be converted to a list of numbers [0, 6000.4, 5000.6, 4000, 4000, 4000]
+        var result = new List<double>();
         var parts = s.Split(' ');
 
         foreach (var part in parts)
@@ -1390,12 +1398,12 @@ public static class CalculusTeklaMapper
             if (part.Contains('*'))
             {
                 var subParts = part.Split('*');
-                if (subParts.Length == 2 && int.TryParse(subParts[0], out var count) && float.TryParse(subParts[1], out var value))
+                if (subParts.Length == 2 && int.TryParse(subParts[0], out var count) && double.TryParse(subParts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
                 {
                     result.AddRange(Enumerable.Repeat(value, count));
                 }
             }
-            else if (float.TryParse(part, out var value))
+            else if (double.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
             {
                 result.Add(value);
             }
@@ -1407,9 +1415,9 @@ public static class CalculusTeklaMapper
     public static void ToTeklaGrid(Grid grid, TSM.Grid teklaGrid)
     {
         teklaGrid.Origin = new TSG.Point(grid.Origin.X, grid.Origin.Y, grid.Origin.Z);
-        teklaGrid.CoordinateX = string.Join(" ", grid.XSpacings);
-        teklaGrid.CoordinateY = string.Join(" ", grid.YSpacings);
-        teklaGrid.CoordinateZ = string.Join(" ", grid.ZLevels);
+        teklaGrid.CoordinateX = TeklaNumberList(grid.XSpacings);
+        teklaGrid.CoordinateY = TeklaNumberList(grid.YSpacings);
+        teklaGrid.CoordinateZ = TeklaNumberList(grid.ZLevels);
         teklaGrid.LabelX = string.Join(" ", grid.XLabels);
         teklaGrid.LabelY = string.Join(" ", grid.YLabels);
         teklaGrid.LabelZ = string.Join(" ", grid.ZLabels);
@@ -1417,7 +1425,7 @@ public static class CalculusTeklaMapper
 
     public static void ToCalculusGrid(TSM.Grid teklaGrid, Grid grid)
     {
-        grid.Origin = new Vector3((float)teklaGrid.Origin.X, (float)teklaGrid.Origin.Y, (float)teklaGrid.Origin.Z);
+        grid.Origin = new Vec3(teklaGrid.Origin.X, teklaGrid.Origin.Y, teklaGrid.Origin.Z);
         grid.Rotation = 0;
         grid.XSpacings = ParseNumberList(teklaGrid.CoordinateX);
         grid.YSpacings = ParseNumberList(teklaGrid.CoordinateY);
@@ -1441,14 +1449,14 @@ public static class CalculusTeklaMapper
 
     public static void ToCalculusLine(TSM.ControlLine teklaLine, Line line)
     {
-        line.Start = new Vector3(
-            (float)teklaLine.Line.StartPoint.X,
-            (float)teklaLine.Line.StartPoint.Y,
-            (float)teklaLine.Line.StartPoint.Z);
-        line.End = new Vector3(
-            (float)teklaLine.Line.EndPoint.X,
-            (float)teklaLine.Line.EndPoint.Y,
-            (float)teklaLine.Line.EndPoint.Z);
+        line.Start = new Vec3(
+            teklaLine.Line.StartPoint.X,
+            teklaLine.Line.StartPoint.Y,
+            teklaLine.Line.StartPoint.Z);
+        line.End = new Vec3(
+            teklaLine.Line.EndPoint.X,
+            teklaLine.Line.EndPoint.Y,
+            teklaLine.Line.EndPoint.Z);
         line.Class = 0;
         // Tekla is broken. It is impossible to read line Guid.
         //line.Userdata.Add("tekla_id", teklaLine.Identifier.GUID.ToString());
