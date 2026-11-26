@@ -28,7 +28,8 @@ public static class SyncHash
         var json = CalculusModelSerializer.SerializeObjects([o]);
         using var doc = JsonDocument.Parse(json);
         var sb = new StringBuilder();
-        Canonical(doc.RootElement[0], sb);
+        if (o is CutPlane plane) CanonicalPlane(plane, sb);
+        else Canonical(doc.RootElement[0], sb);
         using var sha = SHA256.Create();
         var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
         var hex = new StringBuilder(16);
@@ -39,6 +40,29 @@ public static class SyncHash
     /// <summary>The baseline stored on a Calculus object, or null.</summary>
     public static string? Baseline(ModelObject o) =>
         o.GetUserdata().TryGetValue(UserdataKey, out var h) && !string.IsNullOrEmpty(h) ? h : null;
+
+    /// <summary>
+    /// A cut plane is its PLANE — the unit normal (its side says what is cut)
+    /// and the signed distance from the origin — not the three points that
+    /// span it: Tekla keeps only the plane and re-derives its origin and axes
+    /// from the father part (measured Nov 26 2026), so the points read back
+    /// change while nothing about the cut does.
+    /// </summary>
+    private static void CanonicalPlane(CutPlane plane, StringBuilder sb)
+    {
+        var n = Vec3.Normalize(Vec3.Cross(plane.P2 - plane.P1, plane.P3 - plane.P1));
+        sb.Append("{type:\"cutPlane\",fit:").Append(plane.Fit ? "true" : "false");
+        sb.Append(",normal:[").Append(Number(n.X)).Append(',').Append(Number(n.Y)).Append(',').Append(Number(n.Z));
+        sb.Append("],distance:").Append(Number(Vec3.Dot(n, plane.P1))).Append('}');
+    }
+
+    /// <summary>A number as the hash writes it: four decimals, no "-0".</summary>
+    private static string Number(double d)
+    {
+        var r = Math.Round(d, 4);
+        if (r == 0) r = 0;
+        return r.ToString("0.####", CultureInfo.InvariantCulture);
+    }
 
     private static bool IsReference(string key) =>
         key == "id" || key == "userdata" || key.EndsWith("Id", StringComparison.Ordinal) || key.EndsWith("Ids", StringComparison.Ordinal);
