@@ -381,29 +381,54 @@ public static class CalculusTeklaMapper
         };
     }
 
-    static Vector3 GetPlateNormal(Vec3WithChamfer[] polygon)
+    // Plate sides. Calculus's plate Z is the outline's winding normal (Newell's
+    // method, core objects/plate.ts): `top` is the side the counter-clockwise
+    // winding is seen from. Tekla's FRONT is its contour's winding normal too,
+    // but Tekla RE-WINDS a contour whose normal points down (unit normal
+    // z < about -1e-9, measured on Tekla 2025, Nov 26 2026) and keeps any
+    // other — a vertical plate's included. So a Calculus outline facing down
+    // reaches Tekla turned over: its top is Tekla's BEHIND. Read back, Tekla's
+    // contour never faces down, and FRONT is top as it stands.
+
+    /// <summary>Tekla re-winds a contour whose unit normal's z is below this.</summary>
+    const double TeklaRewindNormalZ = -1e-9;
+
+    /// <summary>
+    /// Whether Tekla will turn this outline over: its winding normal (Newell's
+    /// method, in double — as Calculus computes it, whatever the corners'
+    /// convexity) points down. A vertical outline does not.
+    /// </summary>
+    static bool FacesDown(Vec3WithChamfer[] polygon)
     {
-        var uniquePolygon = polygon
-            .Select(v => new Vector3((float)v.X, (float)v.Y, (float)v.Z))
-            .Distinct()
-            .ToArray();
-
-        if (uniquePolygon.Length < 3) return Vector3.UnitZ;
-
-        var first = uniquePolygon[0];
-        var second = uniquePolygon[1];
-        var x = Vector3.Normalize(Vector3.Subtract(second, first));
-        foreach (var point in uniquePolygon.Skip(2))
+        double nx = 0, ny = 0, nz = 0;
+        for (var i = 0; i < polygon.Length; i++)
         {
-            var y = Vector3.Normalize(Vector3.Subtract(point, first));
-            if (Math.Abs(Vector3.Dot(y, x)) < 0.999)
-            {
-                var normal = Vector3.Cross(x, y);
-                return Vector3.Normalize(normal);
-            }
+            var a = polygon[i];
+            var b = polygon[(i + 1) % polygon.Length];
+            nx += (a.Y - b.Y) * (a.Z + b.Z);
+            ny += (a.Z - b.Z) * (a.X + b.X);
+            nz += (a.X - b.X) * (a.Y + b.Y);
         }
+        var length = Math.Sqrt(nx * nx + ny * ny + nz * nz);
+        return length > 0 && nz / length < TeklaRewindNormalZ;
+    }
 
-        return Vector3.UnitZ;
+    static TSM.Position ToTeklaPlatePosition(Vec3WithChamfer[] polygon, PlatePosition zPosition, double zOffset)
+    {
+        var flipped = FacesDown(polygon);
+        return new TSM.Position
+        {
+            Depth = (zPosition, flipped) switch
+            {
+                (PlatePosition.Top, false) or (PlatePosition.Bottom, true) => TSM.Position.DepthEnum.FRONT,
+                (PlatePosition.Bottom, false) or (PlatePosition.Top, true) => TSM.Position.DepthEnum.BEHIND,
+                _ => TSM.Position.DepthEnum.MIDDLE
+            },
+            // The offset keeps its sign except on a turned-over centred plate
+            // (checked against Tekla's solids for every side, winding and
+            // orientation, Nov 26 2026).
+            DepthOffset = (flipped && zPosition is PlatePosition.Center ? -1 : 1) * zOffset
+        };
     }
 
     public static void ToTeklaPlate(Plate plate, TSM.ContourPlate teklaPlate)
@@ -428,37 +453,7 @@ public static class CalculusTeklaMapper
             StartNumber = plate.AssemblyNumber.StartNumber,
         };
 
-        var normal = GetPlateNormal(plate.Polygon);
-        var flipped = Vector3.Dot(normal, Vector3.UnitZ) < 0;
-
-        if (!flipped)
-        {
-            teklaPlate.Position = new TSM.Position
-            {
-                Depth = plate.ZPosition switch
-                {
-                    PlatePosition.Top => TSM.Position.DepthEnum.FRONT,
-                    PlatePosition.Center => TSM.Position.DepthEnum.MIDDLE,
-                    PlatePosition.Bottom => TSM.Position.DepthEnum.BEHIND,
-                    _ => TSM.Position.DepthEnum.MIDDLE
-                },
-                DepthOffset = plate.ZOffset
-            };
-        }
-        else
-        {
-            teklaPlate.Position = new TSM.Position
-            {
-                Depth = plate.ZPosition switch
-                {
-                    PlatePosition.Top => TSM.Position.DepthEnum.BEHIND,
-                    PlatePosition.Center => TSM.Position.DepthEnum.MIDDLE,
-                    PlatePosition.Bottom => TSM.Position.DepthEnum.FRONT,
-                    _ => TSM.Position.DepthEnum.MIDDLE
-                },
-                DepthOffset = (plate.ZPosition is PlatePosition.Center ? -1 : 1) * plate.ZOffset
-            };
-        }
+        teklaPlate.Position = ToTeklaPlatePosition(plate.Polygon, plate.ZPosition, plate.ZOffset);
     }
 
     /// <summary>Two contour points closer than this (mm) are one corner.</summary>
@@ -557,17 +552,7 @@ public static class CalculusTeklaMapper
         teklaPlate.Profile.ProfileString = plate.Profile;
         teklaPlate.Material.MaterialString = plate.Material;
         teklaPlate.Class = TSM.BooleanPart.BooleanOperativeClassName;
-        teklaPlate.Position = new TSM.Position
-        {
-            Depth = plate.ZPosition switch
-            {
-                PlatePosition.Top => TSM.Position.DepthEnum.FRONT,
-                PlatePosition.Center => TSM.Position.DepthEnum.MIDDLE,
-                PlatePosition.Bottom => TSM.Position.DepthEnum.BEHIND,
-                _ => TSM.Position.DepthEnum.MIDDLE
-            },
-            DepthOffset = plate.ZOffset
-        };
+        teklaPlate.Position = ToTeklaPlatePosition(plate.Polygon, plate.ZPosition, plate.ZOffset);
     }
 
     public static void ToTeklaCutOperativePart(CutPart operativePart, TSM.Part teklaOperativePart)
