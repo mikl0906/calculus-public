@@ -401,7 +401,7 @@ public static class BridgeTransferService
         TSM.Model teklaModel)
     {
         var result = new SyncResult();
-        var model = new Model { Objects = [] };
+        var model = new Model();
         var skipModify = new HashSet<string>();
         var leftOut = new HashSet<string>();
         var hashes = new Dictionary<string, string>();

@@ -37,10 +37,7 @@ public static class CalculusModelBuilder
 
     public static Model FromTeklaObjects(List<TSM.ModelObject> teklaObjects)
     {
-        var model = new Model
-        {
-            Objects = []
-        };
+        var model = new Model();
 
         // Map of Tekla GUIDs to Calculus IDs
         Dictionary<Guid, string> teklaToCalculusIdMap = [];
